@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { adviser, compliance, site } from '@/config/adviser';
 import { complianceText, outstandingComplianceItems } from '@/lib/compliance';
+import { SocialLinks } from './SocialLinks';
 
 export function SiteFooter() {
   const outstanding = outstandingComplianceItems();
@@ -24,6 +25,7 @@ export function SiteFooter() {
           <ul className="space-y-2 text-sm text-[var(--color-quill)]">
             <li><Link href="/check" className="hover:underline">Financial health check</Link></li>
             <li><Link href="/calculators" className="hover:underline">Calculators</Link></li>
+            <li><Link href="/learn" className="hover:underline">Learn</Link></li>
             <li><Link href="/about" className="hover:underline">About Harika</Link></li>
             <li><Link href="/contact" className="hover:underline">Contact</Link></li>
           </ul>
@@ -34,8 +36,8 @@ export function SiteFooter() {
           <ul className="space-y-2 text-sm text-[var(--color-quill)]">
             <li><a href={adviser.links.sanlamProfile} className="hover:underline" rel="noopener">Harika on Sanlam</a></li>
             <li><a href={adviser.links.conceptWealth} className="hover:underline" rel="noopener">Concept Wealth Hennopspark</a></li>
-            <li><a href={adviser.links.linkedin} className="hover:underline" rel="noopener">Harika on LinkedIn</a></li>
           </ul>
+          <SocialLinks className="mt-5" />
         </nav>
 
         <nav aria-label="Legal">

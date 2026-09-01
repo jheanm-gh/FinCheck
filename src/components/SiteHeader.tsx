@@ -4,6 +4,7 @@ import { adviser, site } from '@/config/adviser';
 const NAV = [
   { href: '/check', label: 'Financial health check' },
   { href: '/calculators', label: 'Calculators' },
+  { href: '/learn', label: 'Learn' },
   { href: '/about', label: 'About Harika' },
   { href: '/contact', label: 'Contact' },
 ];

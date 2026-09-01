@@ -160,7 +160,11 @@ export const incomeResilience: Calculator = {
   },
 };
 
-export const CALCULATORS: Calculator[] = [emergencyFund, lifeCoverNeeds, incomeResilience];
+import { ADDITIONAL_CALCULATORS } from './calculators-extra';
+
+export const CALCULATORS: Calculator[] = [
+  emergencyFund, lifeCoverNeeds, incomeResilience, ...ADDITIONAL_CALCULATORS,
+];
 
 export const getCalculator = (id: string): Calculator | undefined =>
   CALCULATORS.find((c) => c.id === id);

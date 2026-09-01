@@ -1,4 +1,6 @@
-import { compliance, PLACEHOLDER, type Placeholder } from '@/config/adviser';
+import { adviser, compliance, PLACEHOLDER, type Placeholder } from '@/config/adviser';
+
+const adviserName = adviser.name;
 
 export function isPlaceholder(v: unknown): v is Placeholder {
   return v === PLACEHOLDER;
@@ -14,11 +16,22 @@ export function complianceText(v: unknown, label: string): string {
   return isPlaceholder(v) ? `[${label} — PENDING COMPLIANCE INPUT]` : String(v);
 }
 
+/**
+ * Disclosure sentence, phrased for the confirmed capacity.
+ * A representative and an FSP require materially different wording.
+ */
+export function disclosureSentence(): string {
+  const entity = complianceText(compliance.licensedEntity, 'LICENSED ENTITY');
+  const fsp = complianceText(compliance.fspNumber, 'FSP NUMBER');
+  return compliance.capacity === 'representative'
+    ? `${adviserName} provides financial advice as an appointed representative of ${entity}, FSP ${fsp}. She does not hold a financial services licence in her own name.`
+    : `${adviserName} provides financial advice through ${entity}, FSP ${fsp}.`;
+}
+
 /** Everything still outstanding before this site may lawfully go live. */
 export function outstandingComplianceItems(): string[] {
   const missing: string[] = [];
-  if (isPlaceholder(compliance.capacity)) missing.push('Adviser capacity (FSP vs representative)');
-  if (isPlaceholder(compliance.fspNumber)) missing.push('FSP licence number');
+  if (isPlaceholder(compliance.fspNumber)) missing.push('Approval to display the FSP licence number');
   if (isPlaceholder(compliance.licensedEntity)) missing.push('Licensed entity legal name');
   if (isPlaceholder(compliance.responsibleParty)) missing.push('POPIA responsible party');
   if (isPlaceholder(compliance.informationOfficer)) missing.push('POPIA Information Officer');

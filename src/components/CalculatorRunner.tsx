@@ -26,7 +26,7 @@ function renderOutput(format: string, value: number | string): string {
  * cannot cross the server/client boundary. The registry is plain data, so the
  * client resolves it locally.
  */
-export function CalculatorRunner({ calcId }: { calcId: string }) {
+export function CalculatorRunner({ calcId, campaign }: { calcId: string; campaign?: string }) {
   const calc = getCalculator(calcId)!;
   const [values, setValues] = useState(() => initialValues(calc));
   const results = useMemo(() => calc.compute(values), [calc, values]);
@@ -103,7 +103,7 @@ export function CalculatorRunner({ calcId }: { calcId: string }) {
             benefits or anything about your health. Those change the answer materially.
             If the figure surprised you, that is worth a conversation.
           </p>
-          <div className="mt-8"><LeadForm source={`calculator:${calc.id}`} /></div>
+          <div className="mt-8"><LeadForm source={`calculator:${calc.id}`} campaign={campaign} intent={calc.leadIntent} /></div>
           <Link href="/check" className="btn btn-secondary mt-8">Take the wider financial health check</Link>
         </div>
       </div>

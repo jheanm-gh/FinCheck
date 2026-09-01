@@ -1,0 +1,2136 @@
+diff --git a/.env.example b/.env.example
+index b91f20d..1d3d568 100644
+--- a/.env.example
++++ b/.env.example
+@@ -9,3 +9,11 @@ LEAD_FROM_EMAIL="Climeo <noreply@climeo.dev>"
+ 
+ # LEAD_DELIVERY=webhook  (Zapier / Make / Google Sheets / CRM)
+ LEAD_WEBHOOK_URL=
++
++# Adviser dashboard at /adviser/leads. Minimum 12 characters, or the gate stays shut.
++ADVISER_PASSPHRASE=
++
++# Supabase. Leave BLANK until the POPIA responsible party is settled —
++# the dashboard shows an honest "no database connected" state without them.
++SUPABASE_URL=
++SUPABASE_SERVICE_ROLE_KEY=
+diff --git a/README.md b/README.md
+index e7c2505..5276170 100644
+--- a/README.md
++++ b/README.md
+@@ -73,8 +73,26 @@ Default `log` needs no credentials. See `.env.example`.
+ 
+ Nothing writes to a database yet, deliberately, pending the POPIA question above.
+ 
++## Content decisions worth preserving
++
++**The education centre is her podcast, not articles.** §21 asked for ten written
++articles. Harika already publishes *Meer as net geld / More than just money.* Writing
++finance articles under her name would duplicate her own content and Sanlam's blog, and
++would put unreviewed financial content on a site advertising a licensed representative.
++`src/content/podcast.ts` carries real titles, dates and durations only — no invented
++episode summaries. The `pillar` mappings are editorial guesses from titles and need
++her correction.
++
++**Lead magnets are questions, not advice.** A checklist saying "keep six months of
++expenses saved" is financial advice published without an advice process. A checklist
++saying "ask how many months your savings would cover" is an agenda. All three guides in
++`src/content/guides.ts` are framed as questions for exactly this reason.
++
++**Campaign pages are noindex.** They are ad destinations, not organic search targets,
++and indexing them competes with the pages that should rank.
++
+ ## Not built yet
+ 
+-Education centre, campaign landing pages, lead magnets, adviser dashboard, Supabase
+-schema, and 7 of the 10 calculators. The three built prove the framework: adding one is
+-a definition in `calculators.ts`, not a new page.
++Seven more lead magnets, Protect/Prepare/Grow/Plan hub pages, analytics event wiring,
++and Afrikaans localisation. The podcast is bilingual and the site is English-only — for
++a Pretoria practice that is a real gap, not a nice-to-have.
+diff --git a/src/app/about/page.tsx b/src/app/about/page.tsx
+index b9973f0..bfa0fff 100644
+--- a/src/app/about/page.tsx
++++ b/src/app/about/page.tsx
+@@ -1,7 +1,8 @@
+ import type { Metadata } from 'next';
+ import Link from 'next/link';
+-import { adviser, compliance } from '@/config/adviser';
+-import { complianceText } from '@/lib/compliance';
++import { adviser } from '@/config/adviser';
++import { disclosureSentence } from '@/lib/compliance';
++import { SocialLinks } from '@/components/SocialLinks';
+ 
+ export const metadata: Metadata = {
+   title: 'About Harika',
+@@ -30,14 +31,19 @@ export default function AboutPage() {
+         Sanlam&rsquo;s corporate website. The tools here are educational: they help you
+         work out what to ask, and nothing on this site is a recommendation.
+       </p>
++      <p className="mt-4">{disclosureSentence()}</p>
+       <p className="mt-4">
+-        Actual financial advice happens through Harika in her capacity at{' '}
+-        {adviser.practice}, under {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')}{' '}
+-        (FSP {complianceText(compliance.fspNumber, 'FSP NUMBER')}). Before any advice is
+-        given you should receive a disclosure letter setting out what she may advise on,
+-        which product suppliers she represents, and how she is paid.
++        Before any advice is given you should receive a disclosure letter setting out what
++        she may advise on, which product suppliers she represents, and how she is paid.
+       </p>
+ 
++      <h2 className="mt-16">Follow Harika</h2>
++      <p className="mt-4 text-[var(--color-bark)]">
++        She publishes a podcast and posts regularly. Worth a listen before you book
++        anything.
++      </p>
++      <SocialLinks className="mt-6" />
++
+       <h2 className="mt-16">Get in touch</h2>
+       <p className="mt-4">
+         Call <a href={`tel:${adviser.phoneE164}`} className="underline">{adviser.phoneDisplay}</a>,{' '}
+diff --git a/src/app/adviser/leads/page.tsx b/src/app/adviser/leads/page.tsx
+new file mode 100644
+index 0000000..88a4f13
+--- /dev/null
++++ b/src/app/adviser/leads/page.tsx
+@@ -0,0 +1,102 @@
++import type { Metadata } from 'next';
++import { isAuthenticated } from '@/lib/adviser-auth';
++import { listLeads, isStoreConfigured } from '@/lib/leads-store';
++import { AdviserLogin } from '@/components/AdviserLogin';
++
++export const metadata: Metadata = { title: 'Leads', robots: { index: false, follow: false } };
++export const dynamic = 'force-dynamic';
++
++const STATUS_LABEL: Record<string, string> = {
++  new: 'New', contacted: 'Contacted', meeting_booked: 'Meeting booked',
++  follow_up: 'Follow-up', converted: 'Converted',
++  not_suitable: 'Not suitable', closed: 'Closed',
++};
++
++export default async function LeadsPage() {
++  if (!(await isAuthenticated())) {
++    return (
++      <div className="wrap max-w-md py-20">
++        <h1>Adviser area</h1>
++        <AdviserLogin />
++      </div>
++    );
++  }
++
++  let leads = null;
++  let error: string | null = null;
++  try {
++    leads = await listLeads();
++  } catch (e) {
++    error = e instanceof Error ? e.message : 'Could not load leads';
++  }
++
++  return (
++    <div className="wrap py-16">
++      <h1>Leads</h1>
++
++      {!isStoreConfigured() && (
++        <div className="surface mt-8 border-2 border-dashed border-[var(--color-clay)] p-6">
++          <p className="font-semibold text-[var(--color-clay)]">No database connected</p>
++          <p className="mt-2 text-sm text-[var(--color-clay)]">
++            Nothing is being stored. Enquiries currently go straight to whatever{' '}
++            <code>LEAD_DELIVERY</code> is set to and are not retained by this site.
++            The schema is written and waiting in <code>supabase/migrations/</code>, but
++            applying it needs the POPIA responsible party settled first.
++          </p>
++        </div>
++      )}
++
++      {error && <p className="mt-8 text-[var(--color-clay)]" role="alert">{error}</p>}
++
++      {leads && leads.length === 0 && (
++        <p className="mt-8 text-[var(--color-bark)]">No enquiries yet.</p>
++      )}
++
++      {leads && leads.length > 0 && (
++        <div className="mt-10 overflow-x-auto">
++          <table className="w-full min-w-[52rem] text-left text-sm">
++            <thead className="border-b">
++              <tr className="text-[var(--color-quill)]">
++                <th scope="col" className="py-3 pr-4 font-medium">Received</th>
++                <th scope="col" className="py-3 pr-4 font-medium">Name</th>
++                <th scope="col" className="py-3 pr-4 font-medium">Contact</th>
++                <th scope="col" className="py-3 pr-4 font-medium">Intent</th>
++                <th scope="col" className="py-3 pr-4 font-medium">Band</th>
++                <th scope="col" className="py-3 pr-4 font-medium">Source</th>
++                <th scope="col" className="py-3 pr-4 font-medium">Marketing</th>
++                <th scope="col" className="py-3 font-medium">Status</th>
++              </tr>
++            </thead>
++            <tbody className="divide-y">
++              {leads.map((l) => (
++                <tr key={l.id}>
++                  <td className="py-3 pr-4 whitespace-nowrap">
++                    {new Date(l.receivedAt).toLocaleDateString('en-ZA')}
++                  </td>
++                  <td className="py-3 pr-4">{l.firstName} {l.surname}</td>
++                  <td className="py-3 pr-4">
++                    <a href={`mailto:${l.email}`} className="underline">{l.email}</a>
++                    {l.mobile && <div className="text-[var(--color-quill)]">{l.mobile}</div>}
++                  </td>
++                  <td className="py-3 pr-4">{l.intent ?? '—'}</td>
++                  <td className="py-3 pr-4">{l.checkBand ?? '—'}</td>
++                  <td className="py-3 pr-4">{l.source}</td>
++                  <td className="py-3 pr-4">
++                    {l.consent?.marketingAgreedAt
++                      ? <span className="text-[var(--color-band-4)]">Yes</span>
++                      : <span className="text-[var(--color-clay)]">No — do not market</span>}
++                  </td>
++                  <td className="py-3">{STATUS_LABEL[l.status] ?? l.status}</td>
++                </tr>
++              ))}
++            </tbody>
++          </table>
++        </div>
++      )}
++
++      <p className="legal mt-10">
++        This page shows personal information. Do not leave it open on a shared screen.
++      </p>
++    </div>
++  );
++}
+diff --git a/src/app/api/adviser-login/route.ts b/src/app/api/adviser-login/route.ts
+new file mode 100644
+index 0000000..478a15c
+--- /dev/null
++++ b/src/app/api/adviser-login/route.ts
+@@ -0,0 +1,35 @@
++import { NextResponse } from 'next/server';
++import { verifyPassphrase, sessionToken, COOKIE_NAME } from '@/lib/adviser-auth';
++
++const attempts = new Map<string, { n: number; resetAt: number }>();
++
++export async function POST(req: Request) {
++  const ip = req.headers.get('x-forwarded-for')?.split(',')[0]?.trim() ?? 'unknown';
++  const now = Date.now();
++  const rec = attempts.get(ip);
++
++  if (rec && now < rec.resetAt && rec.n >= 5) {
++    return NextResponse.json({ error: 'Too many attempts.' }, { status: 429 });
++  }
++
++  const { passphrase } = await req.json().catch(() => ({ passphrase: '' }));
++
++  if (!verifyPassphrase(String(passphrase ?? ''))) {
++    attempts.set(ip, {
++      n: rec && now < rec.resetAt ? rec.n + 1 : 1,
++      resetAt: rec && now < rec.resetAt ? rec.resetAt : now + 900_000,
++    });
++    return NextResponse.json({ error: 'Rejected' }, { status: 401 });
++  }
++
++  attempts.delete(ip);
++  const res = NextResponse.json({ ok: true });
++  res.cookies.set(COOKIE_NAME, sessionToken(), {
++    httpOnly: true,
++    secure: process.env.NODE_ENV === 'production',
++    sameSite: 'strict',
++    path: '/adviser',
++    maxAge: 60 * 60 * 8,
++  });
++  return res;
++}
+diff --git a/src/app/campaign/[slug]/page.tsx b/src/app/campaign/[slug]/page.tsx
+new file mode 100644
+index 0000000..47c0c6e
+--- /dev/null
++++ b/src/app/campaign/[slug]/page.tsx
+@@ -0,0 +1,67 @@
++import type { Metadata } from 'next';
++import Link from 'next/link';
++import { notFound } from 'next/navigation';
++import { CAMPAIGNS, getCampaign } from '@/content/campaigns';
++import { getCalculator } from '@/lib/calculators';
++import { CalculatorRunner } from '@/components/CalculatorRunner';
++import { PILLARS } from '@/lib/check';
++import { disclaimers } from '@/config/adviser';
++
++export function generateStaticParams() {
++  return CAMPAIGNS.map((c) => ({ slug: c.slug }));
++}
++
++export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
++  const { slug } = await params;
++  const c = getCampaign(slug);
++  if (!c) return { title: 'Not found' };
++  return {
++    title: c.headline,
++    description: c.subhead,
++    openGraph: { title: c.headline, description: c.subhead },
++    // Campaign pages are ad destinations, not organic search targets.
++    robots: { index: false, follow: true },
++  };
++}
++
++export default async function CampaignPage({ params }: { params: Promise<{ slug: string }> }) {
++  const { slug } = await params;
++  const c = getCampaign(slug);
++  if (!c) notFound();
++
++  const calc = getCalculator(c.calculatorId);
++
++  return (
++    <>
++      <section className="border-b bg-[var(--color-mist)]">
++        <div className="wrap py-16 sm:py-20">
++          <p className="text-sm text-[var(--color-quill)]">{PILLARS[c.pillar].label}</p>
++          <h1 className="mt-2">{c.headline}</h1>
++          <p className="measure mt-5 text-lg text-[var(--color-bark)]">{c.subhead}</p>
++          <ul className="measure mt-8 space-y-3">
++            {c.points.map((p) => (
++              <li key={p} className="flex gap-3">
++                <span aria-hidden className="mt-2 h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--color-band-3)]" />
++                <span>{p}</span>
++              </li>
++            ))}
++          </ul>
++          <p className="legal mt-8">For: {c.audience}</p>
++        </div>
++      </section>
++
++      {calc && (
++        <div className="wrap py-16">
++          <h2>{calc.name}</h2>
++          <p className="measure mt-3 text-[var(--color-bark)]">{calc.description}</p>
++          <CalculatorRunner calcId={calc.id} campaign={c.slug} />
++        </div>
++      )}
++
++      <section className="wrap pb-20">
++        <p className="legal measure">{disclaimers.tool}</p>
++        <Link href="/check" className="btn btn-secondary mt-8">Take the wider financial health check</Link>
++      </section>
++    </>
++  );
++}
+diff --git a/src/app/disclaimer/page.tsx b/src/app/disclaimer/page.tsx
+index c074564..49581f3 100644
+--- a/src/app/disclaimer/page.tsx
++++ b/src/app/disclaimer/page.tsx
+@@ -1,6 +1,6 @@
+ import type { Metadata } from 'next';
+ import { adviser, compliance, disclaimers, site } from '@/config/adviser';
+-import { complianceText } from '@/lib/compliance';
++import { disclosureSentence } from '@/lib/compliance';
+ 
+ export const metadata: Metadata = { title: 'Disclaimer' };
+ 
+@@ -22,11 +22,7 @@ export default function DisclaimerPage() {
+       <p className="mt-4">{disclaimers.noProduct}</p>
+ 
+       <h2 className="mt-12">Licensing</h2>
+-      <p className="mt-4">
+-        Financial advice is provided by {adviser.name} through{' '}
+-        {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')}, FSP{' '}
+-        {complianceText(compliance.fspNumber, 'FSP NUMBER')}.
+-      </p>
++      <p className="mt-4">{disclosureSentence()}</p>
+       <p className="mt-4">{compliance.sanlamEntityLine}</p>
+ 
+       <h2 className="mt-12">No guarantees</h2>
+diff --git a/src/app/guides/[slug]/page.tsx b/src/app/guides/[slug]/page.tsx
+new file mode 100644
+index 0000000..db96fc2
+--- /dev/null
++++ b/src/app/guides/[slug]/page.tsx
+@@ -0,0 +1,28 @@
++import type { Metadata } from 'next';
++import { notFound } from 'next/navigation';
++import { GUIDES, getGuide } from '@/content/guides';
++import { GuideGate } from '@/components/GuideGate';
++
++export function generateStaticParams() {
++  return GUIDES.map((g) => ({ slug: g.slug }));
++}
++
++export async function generateMetadata({ params }: { params: Promise<{ slug: string }> }): Promise<Metadata> {
++  const { slug } = await params;
++  const g = getGuide(slug);
++  return g ? { title: g.title, description: g.blurb } : { title: 'Not found' };
++}
++
++export default async function GuidePage({ params }: { params: Promise<{ slug: string }> }) {
++  const { slug } = await params;
++  const g = getGuide(slug);
++  if (!g) notFound();
++
++  return (
++    <div className="wrap max-w-2xl py-16 sm:py-20">
++      <h1>{g.title}</h1>
++      <p className="measure mt-5 text-lg text-[var(--color-bark)]">{g.blurb}</p>
++      <GuideGate guide={g} />
++    </div>
++  );
++}
+diff --git a/src/app/guides/page.tsx b/src/app/guides/page.tsx
+new file mode 100644
+index 0000000..bc70f3b
+--- /dev/null
++++ b/src/app/guides/page.tsx
+@@ -0,0 +1,29 @@
++import type { Metadata } from 'next';
++import Link from 'next/link';
++import { GUIDES } from '@/content/guides';
++
++export const metadata: Metadata = {
++  title: 'Checklists',
++  description: 'Question checklists to bring to a financial review.',
++};
++
++export default function GuidesPage() {
++  return (
++    <div className="wrap py-16 sm:py-20">
++      <h1>Checklists</h1>
++      <p className="measure mt-5 text-lg text-[var(--color-bark)]">
++        Each one is a list of questions, not instructions. Take them to whoever advises
++        you, including Harika.
++      </p>
++      <div className="mt-12 grid gap-6 sm:grid-cols-2 lg:grid-cols-3">
++        {GUIDES.map((g) => (
++          <Link key={g.slug} href={`/guides/${g.slug}`} className="surface block p-6 transition-colors hover:border-[var(--color-ink)]">
++            <h2 className="text-xl">{g.title}</h2>
++            <p className="mt-2 text-sm text-[var(--color-bark)]">{g.blurb}</p>
++            <p className="legal mt-4">{g.contains}</p>
++          </Link>
++        ))}
++      </div>
++    </div>
++  );
++}
+diff --git a/src/app/learn/page.tsx b/src/app/learn/page.tsx
+new file mode 100644
+index 0000000..db13989
+--- /dev/null
++++ b/src/app/learn/page.tsx
+@@ -0,0 +1,80 @@
++import type { Metadata } from 'next';
++import Link from 'next/link';
++import { SHOW, EPISODES, episodeUrl, CALCULATOR_FOR_PILLAR } from '@/content/podcast';
++import { PILLARS } from '@/lib/check';
++import { getCalculator } from '@/lib/calculators';
++import { adviser } from '@/config/adviser';
++
++export const metadata: Metadata = {
++  title: 'Learn',
++  description: `${SHOW.title} — ${SHOW.description} Hosted by ${adviser.name}.`,
++};
++
++const LANG_LABEL = { en: 'English', af: 'Afrikaans' } as const;
++
++function formatDate(iso: string) {
++  return new Date(iso).toLocaleDateString('en-ZA', { day: 'numeric', month: 'short', year: 'numeric' });
++}
++
++export default function LearnPage() {
++  return (
++    <div className="wrap py-16 sm:py-20">
++      <p className="text-sm text-[var(--color-quill)]">Podcast</p>
++      <h1 className="mt-2">{SHOW.title}</h1>
++      <p className="measure mt-5 text-lg text-[var(--color-bark)]">{SHOW.description}</p>
++      <p className="mt-4 text-sm text-[var(--color-quill)]">
++        Hosted by {SHOW.host} · {SHOW.category} · {EPISODES.length} episodes shown
++      </p>
++
++      <a href={SHOW.url} target="_blank" rel="noopener noreferrer" className="btn btn-primary mt-8">
++        Listen on Spotify
++      </a>
++
++      <ul className="mt-16 divide-y border-t">
++        {EPISODES.map((ep) => {
++          const calcId = ep.pillar ? CALCULATOR_FOR_PILLAR[ep.pillar] : null;
++          const calc = calcId ? getCalculator(calcId) : null;
++          return (
++            <li key={ep.spotifyId} className="py-7">
++              <div className="flex flex-wrap items-baseline gap-x-4 gap-y-1">
++                <span className="font-[family-name:var(--font-display)] text-2xl text-[var(--color-quill)]">
++                  {ep.number}
++                </span>
++                <h2 className="text-xl">
++                  <a href={episodeUrl(ep.spotifyId)} target="_blank" rel="noopener noreferrer" className="hover:underline">
++                    {ep.title}
++                  </a>
++                </h2>
++              </div>
++              <p className="mt-2 text-sm text-[var(--color-quill)]">
++                {formatDate(ep.published)} · {ep.minutes} min · {LANG_LABEL[ep.language]}
++                {ep.pillar && ` · ${PILLARS[ep.pillar].label}`}
++              </p>
++              {calc && (
++                <p className="mt-3 text-sm">
++                  Related tool:{' '}
++                  <Link href={`/calculators/${calc.id}`} className="underline hover:text-[var(--color-clay)]">
++                    {calc.name}
++                  </Link>
++                </p>
++              )}
++            </li>
++          );
++        })}
++      </ul>
++
++      <p className="legal measure mt-12">
++        Episode titles, dates and durations come from the published Spotify feed. The
++        podcast is general conversation, not financial advice.
++      </p>
++
++      <div className="mt-16 border-t pt-12">
++        <h2>Where do you actually stand?</h2>
++        <p className="measure mt-3 text-[var(--color-bark)]">
++          Twelve questions, about ninety seconds, no figures required.
++        </p>
++        <Link href="/check" className="btn btn-primary mt-7">Take the financial health check</Link>
++      </div>
++    </div>
++  );
++}
+diff --git a/src/app/robots.ts b/src/app/robots.ts
+index 6e11211..b1b64a8 100644
+--- a/src/app/robots.ts
++++ b/src/app/robots.ts
+@@ -3,7 +3,7 @@ import { site } from '@/config/adviser';
+ 
+ export default function robots(): MetadataRoute.Robots {
+   return {
+-    rules: { userAgent: '*', allow: '/', disallow: ['/api/'] },
++    rules: { userAgent: '*', allow: '/', disallow: ['/api/', '/adviser/', '/campaign/'] },
+     sitemap: `${site.domain}/sitemap.xml`,
+   };
+ }
+diff --git a/src/app/sitemap.ts b/src/app/sitemap.ts
+index c5bb8e2..dd5b2a4 100644
+--- a/src/app/sitemap.ts
++++ b/src/app/sitemap.ts
+@@ -4,7 +4,7 @@ import { CALCULATORS } from '@/lib/calculators';
+ 
+ export default function sitemap(): MetadataRoute.Sitemap {
+   const now = new Date();
+-  const routes = ['', '/check', '/calculators', '/about', '/contact', '/privacy', '/disclaimer'];
++  const routes = ['', '/check', '/calculators', '/learn', '/guides', '/about', '/contact', '/privacy', '/disclaimer'];
+   return [
+     ...routes.map((r) => ({
+       url: `${site.domain}${r}`,
+diff --git a/src/components/AdviserLogin.tsx b/src/components/AdviserLogin.tsx
+new file mode 100644
+index 0000000..71f4eb8
+--- /dev/null
++++ b/src/components/AdviserLogin.tsx
+@@ -0,0 +1,43 @@
++'use client';
++
++import { useState } from 'react';
++
++export function AdviserLogin() {
++  const [error, setError] = useState<string | null>(null);
++  const [busy, setBusy] = useState(false);
++
++  async function submit(e: React.FormEvent<HTMLFormElement>) {
++    e.preventDefault();
++    setBusy(true);
++    setError(null);
++    const fd = new FormData(e.currentTarget);
++    const res = await fetch('/api/adviser-login', {
++      method: 'POST',
++      headers: { 'Content-Type': 'application/json' },
++      body: JSON.stringify({ passphrase: String(fd.get('passphrase') ?? '') }),
++    });
++    if (res.ok) window.location.reload();
++    else {
++      setError('That passphrase was not accepted.');
++      setBusy(false);
++    }
++  }
++
++  return (
++    <form onSubmit={submit} className="surface mt-8 p-6">
++      <label htmlFor="passphrase" className="text-sm font-medium">Passphrase</label>
++      <input
++        id="passphrase" name="passphrase" type="password" required autoComplete="current-password"
++        className="mt-1.5 w-full rounded border bg-[var(--color-mist)] px-4 py-3"
++      />
++      {error && <p className="mt-3 text-sm text-[var(--color-clay)]" role="alert">{error}</p>}
++      <button type="submit" disabled={busy} className="btn btn-primary mt-5 w-full">
++        {busy ? 'Checking…' : 'Continue'}
++      </button>
++      <p className="legal mt-4">
++        A shared passphrase, not real authentication. Adequate for one adviser; replace
++        with Supabase Auth before this holds live client data.
++      </p>
++    </form>
++  );
++}
+diff --git a/src/components/CalculatorRunner.tsx b/src/components/CalculatorRunner.tsx
+index 02035a4..835bc1c 100644
+--- a/src/components/CalculatorRunner.tsx
++++ b/src/components/CalculatorRunner.tsx
+@@ -26,7 +26,7 @@ function renderOutput(format: string, value: number | string): string {
+  * cannot cross the server/client boundary. The registry is plain data, so the
+  * client resolves it locally.
+  */
+-export function CalculatorRunner({ calcId }: { calcId: string }) {
++export function CalculatorRunner({ calcId, campaign }: { calcId: string; campaign?: string }) {
+   const calc = getCalculator(calcId)!;
+   const [values, setValues] = useState(() => initialValues(calc));
+   const results = useMemo(() => calc.compute(values), [calc, values]);
+@@ -103,7 +103,7 @@ export function CalculatorRunner({ calcId }: { calcId: string }) {
+             benefits or anything about your health. Those change the answer materially.
+             If the figure surprised you, that is worth a conversation.
+           </p>
+-          <div className="mt-8"><LeadForm source={`calculator:${calc.id}`} /></div>
++          <div className="mt-8"><LeadForm source={`calculator:${calc.id}`} campaign={campaign} intent={calc.leadIntent} /></div>
+           <Link href="/check" className="btn btn-secondary mt-8">Take the wider financial health check</Link>
+         </div>
+       </div>
+diff --git a/src/components/GuideGate.tsx b/src/components/GuideGate.tsx
+new file mode 100644
+index 0000000..e64ccb3
+--- /dev/null
++++ b/src/components/GuideGate.tsx
+@@ -0,0 +1,60 @@
++'use client';
++
++import { useState } from 'react';
++import type { Guide } from '@/content/guides';
++import { LeadForm } from './LeadForm';
++
++/**
++ * Progressive profiling (§13): the guide is shown in full after the form, in the
++ * browser, with a print option. No PDF pipeline and no file to email.
++ *
++ * The gate states plainly what is behind it before asking for anything.
++ */
++export function GuideGate({ guide }: { guide: Guide }) {
++  const [unlocked, setUnlocked] = useState(false);
++
++  if (!unlocked) {
++    return (
++      <div className="mt-10">
++        <div className="surface p-6 sm:p-8">
++          <h2 className="text-xl">What you get</h2>
++          <p className="mt-3">{guide.contains}, covering:</p>
++          <ul className="mt-4 list-disc space-y-1.5 pl-5 text-[var(--color-bark)]">
++            {guide.sections.map((s) => <li key={s.heading}>{s.heading}</li>)}
++          </ul>
++          <p className="legal mt-5">
++            Questions to bring to a review. Nothing here tells you what to do with your
++            money.
++          </p>
++        </div>
++
++        <div className="mt-8">
++          <LeadForm source={`guide:${guide.slug}`} intent={guide.leadIntent} onSuccess={() => setUnlocked(true)} />
++        </div>
++      </div>
++    );
++  }
++
++  return (
++    <div className="mt-10">
++      <div className="flex flex-wrap items-center justify-between gap-4 border-b pb-5">
++        <p className="text-sm text-[var(--color-quill)]">{guide.contains}</p>
++        <button onClick={() => window.print()} className="btn btn-secondary">Print or save as PDF</button>
++      </div>
++
++      {guide.sections.map((s) => (
++        <section key={s.heading} className="mt-10">
++          <h2 className="text-xl">{s.heading}</h2>
++          <ul className="mt-4 space-y-3">
++            {s.questions.map((q) => (
++              <li key={q} className="flex gap-3">
++                <span aria-hidden className="mt-1.5 h-4 w-4 shrink-0 rounded-sm border" />
++                <span>{q}</span>
++              </li>
++            ))}
++          </ul>
++        </section>
++      ))}
++    </div>
++  );
++}
+diff --git a/src/components/LeadForm.tsx b/src/components/LeadForm.tsx
+index 0a3a941..68e88f9 100644
+--- a/src/components/LeadForm.tsx
++++ b/src/components/LeadForm.tsx
+@@ -1,6 +1,7 @@
+ 'use client';
+ 
+ import { useState } from 'react';
++import { readUtm } from '@/lib/utm';
+ import { CONSENT_WORDING, LEAD_INTENTS } from '@/lib/leads';
+ import { adviser } from '@/config/adviser';
+ 
+@@ -20,7 +21,12 @@ const INTENT_LABELS: Partial<Record<(typeof LEAD_INTENTS)[number], string>> = {
+ 
+ type Status = 'idle' | 'sending' | 'sent' | 'error';
+ 
+-export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; source?: string }) {
++export function LeadForm({
++  checkBand, source = 'site', campaign, intent, onSuccess,
++}: {
++  checkBand?: string; source?: string; campaign?: string;
++  intent?: string; onSuccess?: () => void;
++}) {
+   const [status, setStatus] = useState<Status>('idle');
+   const [error, setError] = useState<string | null>(null);
+ 
+@@ -35,7 +41,7 @@ export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; s
+       surname: String(fd.get('surname') ?? ''),
+       email: String(fd.get('email') ?? ''),
+       mobile: String(fd.get('mobile') ?? ''),
+-      intent: (fd.get('intent') || undefined) as string | undefined,
++      intent: (fd.get('intent') || intent || undefined) as string | undefined,
+       preferredContact: String(fd.get('preferredContact') ?? 'email'),
+       message: String(fd.get('message') ?? ''),
+       contactConsent: fd.get('contactConsent') === 'on',
+@@ -43,6 +49,8 @@ export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; s
+       website: String(fd.get('website') ?? ''),
+       checkBand,
+       source,
++      campaign,
++      ...(typeof window !== 'undefined' ? readUtm(window.location.search) : {}),
+     };
+ 
+     try {
+@@ -58,6 +66,7 @@ export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; s
+         return;
+       }
+       setStatus('sent');
++      onSuccess?.();
+     } catch {
+       setError('We could not reach the server. Check your connection and try again.');
+       setStatus('error');
+diff --git a/src/components/SiteFooter.tsx b/src/components/SiteFooter.tsx
+index 9a0ef41..50490e3 100644
+--- a/src/components/SiteFooter.tsx
++++ b/src/components/SiteFooter.tsx
+@@ -1,6 +1,7 @@
+ import Link from 'next/link';
+ import { adviser, compliance, site } from '@/config/adviser';
+ import { complianceText, outstandingComplianceItems } from '@/lib/compliance';
++import { SocialLinks } from './SocialLinks';
+ 
+ export function SiteFooter() {
+   const outstanding = outstandingComplianceItems();
+@@ -24,6 +25,7 @@ export function SiteFooter() {
+           <ul className="space-y-2 text-sm text-[var(--color-quill)]">
+             <li><Link href="/check" className="hover:underline">Financial health check</Link></li>
+             <li><Link href="/calculators" className="hover:underline">Calculators</Link></li>
++            <li><Link href="/learn" className="hover:underline">Learn</Link></li>
+             <li><Link href="/about" className="hover:underline">About Harika</Link></li>
+             <li><Link href="/contact" className="hover:underline">Contact</Link></li>
+           </ul>
+@@ -34,8 +36,8 @@ export function SiteFooter() {
+           <ul className="space-y-2 text-sm text-[var(--color-quill)]">
+             <li><a href={adviser.links.sanlamProfile} className="hover:underline" rel="noopener">Harika on Sanlam</a></li>
+             <li><a href={adviser.links.conceptWealth} className="hover:underline" rel="noopener">Concept Wealth Hennopspark</a></li>
+-            <li><a href={adviser.links.linkedin} className="hover:underline" rel="noopener">Harika on LinkedIn</a></li>
+           </ul>
++          <SocialLinks className="mt-5" />
+         </nav>
+ 
+         <nav aria-label="Legal">
+diff --git a/src/components/SiteHeader.tsx b/src/components/SiteHeader.tsx
+index ebad756..9dd4397 100644
+--- a/src/components/SiteHeader.tsx
++++ b/src/components/SiteHeader.tsx
+@@ -4,6 +4,7 @@ import { adviser, site } from '@/config/adviser';
+ const NAV = [
+   { href: '/check', label: 'Financial health check' },
+   { href: '/calculators', label: 'Calculators' },
++  { href: '/learn', label: 'Learn' },
+   { href: '/about', label: 'About Harika' },
+   { href: '/contact', label: 'Contact' },
+ ];
+diff --git a/src/components/SocialLinks.tsx b/src/components/SocialLinks.tsx
+new file mode 100644
+index 0000000..317f190
+--- /dev/null
++++ b/src/components/SocialLinks.tsx
+@@ -0,0 +1,37 @@
++import { adviser } from '@/config/adviser';
++
++/** Inline paths so three icons don't drag an icon library into the bundle. */
++const ICONS = {
++  linkedin: 'M20.45 20.45h-3.56v-5.57c0-1.33-.02-3.04-1.85-3.04-1.85 0-2.14 1.45-2.14 2.94v5.67H9.35V9h3.41v1.56h.05a3.74 3.74 0 0 1 3.37-1.85c3.6 0 4.27 2.37 4.27 5.46zM5.34 7.43a2.06 2.06 0 1 1 0-4.13 2.06 2.06 0 0 1 0 4.13M7.12 20.45H3.56V9h3.56zM22.22 0H1.77C.79 0 0 .77 0 1.72v20.56C0 23.23.79 24 1.77 24h20.45c.98 0 1.78-.77 1.78-1.72V1.72C24 .77 23.2 0 22.22 0',
++  facebook: 'M24 12.07C24 5.4 18.63 0 12 0S0 5.4 0 12.07C0 18.1 4.39 23.1 10.13 24v-8.44H7.08v-3.49h3.05V9.41c0-3.02 1.79-4.69 4.53-4.69 1.31 0 2.68.24 2.68.24v2.97h-1.51c-1.49 0-1.96.93-1.96 1.89v2.25h3.33l-.53 3.49h-2.8V24C19.61 23.1 24 18.1 24 12.07',
++  spotify: 'M12 0C5.4 0 0 5.4 0 12s5.4 12 12 12 12-5.4 12-12S18.66 0 12 0m5.52 17.34c-.24.36-.66.48-1.02.24-2.82-1.74-6.36-2.1-10.56-1.14-.42.12-.78-.18-.9-.54-.12-.42.18-.78.54-.9 4.56-1.02 8.52-.6 11.64 1.32.42.18.48.66.3 1.02m1.44-3.3c-.3.42-.84.6-1.26.3-3.24-1.98-8.16-2.58-11.94-1.38-.48.12-1.02-.12-1.14-.6-.12-.48.12-1.02.6-1.14 4.38-1.32 9.78-.66 13.5 1.62.36.18.54.78.24 1.2m.12-3.36C15.24 8.4 8.82 8.16 5.1 9.3c-.6.18-1.2-.18-1.38-.72-.18-.6.18-1.2.72-1.38 4.32-1.26 11.34-1.02 15.78 1.62.54.3.72 1.02.42 1.56-.3.42-1.02.6-1.56.3',
++} as const;
++
++const LINKS = [
++  { key: 'linkedin', label: 'LinkedIn', href: adviser.links.linkedin },
++  { key: 'facebook', label: 'Facebook', href: adviser.links.facebook },
++  { key: 'spotify', label: 'Podcast', href: adviser.links.podcast },
++] as const;
++
++export function SocialLinks({ className = '' }: { className?: string }) {
++  return (
++    <ul className={`flex flex-wrap gap-3 ${className}`}>
++      {LINKS.map((l) => (
++        <li key={l.key}>
++          <a
++            href={l.href}
++            target="_blank"
++            rel="noopener noreferrer"
++            className="inline-flex min-h-11 items-center gap-2.5 rounded-full border px-5 text-sm font-medium transition-colors hover:border-[var(--color-ink)] hover:bg-[var(--color-mist)]"
++          >
++            <svg viewBox="0 0 24 24" aria-hidden="true" className="h-4 w-4 shrink-0 fill-current">
++              <path d={ICONS[l.key]} />
++            </svg>
++            {l.label}
++            <span className="sr-only"> (opens in a new tab)</span>
++          </a>
++        </li>
++      ))}
++    </ul>
++  );
++}
+diff --git a/src/config/adviser.ts b/src/config/adviser.ts
+index 2fc4191..05dc76e 100644
+--- a/src/config/adviser.ts
++++ b/src/config/adviser.ts
+@@ -32,13 +32,8 @@ export const adviser = {
+   phoneDisplay: '083 331 6235',
+   phoneE164: '+27833316235',
+   whatsapp: 'https://wa.me/27833316235',
+-  email: 'harika.vandermerwe@conceptwealth.com',
+-
+-  /**
+-   * VERIFIED but AMBIGUOUS: the practice footer lists jdhenry@conceptwealth.co.za
+-   * (.co.za) while Harika's own address is @conceptwealth.com (.com). Confirm which
+-   * domain is correct before enabling any outbound mail from this site.
+-   */
++  /** CONFIRMED by the practice: .co.za, not the .com shown on the Sanlam profile. */
++  email: 'harika.vandermerwe@conceptwealth.co.za',
+   practiceEmail: 'jdhenry@conceptwealth.co.za',
+   practiceAddress:
+     'Sanlynn Building, Cnr Sanlam & Alkantrand Road, Lynnwood Manor, Pretoria, 0081',
+@@ -48,7 +43,16 @@ export const adviser = {
+     sanlamProfile:
+       'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark/adviser/harika-van-der-merwe/88842552158368',
+     conceptWealth: 'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark',
+-    linkedin: 'https://www.linkedin.com/in/harika-van-der-merwe-a46690254/',
++    linkedin: 'https://www.linkedin.com/in/harika-van-der-merwe-a46690254',
++
++    /**
++     * A Facebook /share/ redirect, not her canonical page URL. It resolves today but
++     * these are not guaranteed stable — replace with the real page URL when you have it.
++     */
++    facebook: 'https://www.facebook.com/share/1EZwKsmDHm/',
++
++    /** Her podcast. Genuine owned content, not a third-party resource. */
++    podcast: 'https://open.spotify.com/show/033OI8ClChie4avziJnMMY',
+     sanlamPrivacy: 'https://www.sanlam.com/sanlams-privacy-policy.php',
+     sanlamTerms: 'https://www.sanlam.com/terms-of-use.php',
+   },
+@@ -73,10 +77,17 @@ export const adviser = {
+  * must be confirmed rather than guessed.
+  */
+ export const compliance = {
+-  /** Is she an authorised FSP, or a representative under one? Determines wording. */
+-  capacity: PLACEHOLDER as Placeholder, // 'fsp' | 'representative'
++  /**
++   * CONFIRMED: she advises as a REPRESENTATIVE under Sanlam's FSP licence via
++   * BlueStar, not as an FSP in her own right. Drives the disclosure wording below.
++   */
++  capacity: 'representative' as 'fsp' | 'representative',
+ 
+-  /** FSP licence number of the licensed entity. NEVER invent this. */
++  /**
++   * FSP licence number. Known to be Sanlam's, but approval to display it on this
++   * site is still outstanding. Stays a placeholder until that sign-off exists —
++   * knowing a number is not permission to broadcast it.
++   */
+   fspNumber: PLACEHOLDER as Placeholder,
+ 
+   /** Full legal name of the licensed entity she represents. */
+diff --git a/src/content/campaigns.ts b/src/content/campaigns.ts
+new file mode 100644
+index 0000000..c71d8c0
+--- /dev/null
++++ b/src/content/campaigns.ts
+@@ -0,0 +1,111 @@
++/**
++ * Campaign landing pages (§25). One definition per campaign, one route.
++ * Adding a campaign is an entry in this array — never a new hard-coded page.
++ *
++ * Headlines describe a situation and offer a tool. None of them promise an outcome,
++ * name a product, or imply a recommendation (§37).
++ */
++
++import type { PillarId } from '@/lib/check';
++
++export interface Campaign {
++  slug: string;
++  headline: string;
++  subhead: string;
++  /** Who this is for, in their words rather than a segment name. */
++  audience: string;
++  calculatorId: string;
++  leadIntent: string;
++  pillar: PillarId;
++  /** Questions this campaign helps someone answer. Not claims. */
++  points: string[];
++}
++
++export const CAMPAIGNS: Campaign[] = [
++  {
++    slug: 'life-cover',
++    headline: 'Would your family be alright?',
++    subhead: 'Work out the gap between what your household would need and what is already covered.',
++    audience: 'People with a bond, dependants, or cover they arranged years ago and have not looked at since.',
++    calculatorId: 'protection-gap',
++    leadIntent: 'family_protection',
++    pillar: 'protect',
++    points: [
++      'What your household would actually need if your income stopped permanently',
++      'Whether employer cover is doing as much work as you assume',
++      'What debt would have to be settled first',
++    ],
++  },
++  {
++    slug: 'income-protection',
++    headline: 'The day the paycheck stops',
++    subhead: 'How long your household could keep going if you could not work.',
++    audience: 'Anyone whose household runs on one income, or on income that varies.',
++    calculatorId: 'income-resilience',
++    leadIntent: 'income_replacement',
++    pillar: 'prepare',
++    points: [
++      'How many months your savings would actually cover',
++      'What your real monthly shortfall would be',
++      'Which commitments would not pause just because your income did',
++    ],
++  },
++  {
++    slug: 'retirement',
++    headline: 'Are your contributions going where you think?',
++    subhead: 'See your current retirement saving projected in today\'s money.',
++    audience: 'People contributing steadily who have never checked where it lands.',
++    calculatorId: 'retirement-contribution',
++    leadIntent: 'retirement',
++    pillar: 'plan',
++    points: [
++      'What your current contributions project to, after inflation',
++      'What capital that income level actually requires',
++      'What closing the gap would cost per month',
++    ],
++  },
++  {
++    slug: 'new-parents',
++    headline: 'What changes when they arrive',
++    subhead: 'A new dependant changes the arithmetic of everything you arranged before.',
++    audience: 'New and expecting parents.',
++    calculatorId: 'education-planning',
++    leadIntent: 'providing_for_children',
++    pillar: 'plan',
++    points: [
++      'What education is likely to cost by the time it starts',
++      'Why beneficiary nominations matter more than a will here',
++      'What cover arranged before children no longer covers',
++    ],
++  },
++  {
++    slug: 'financial-health',
++    headline: 'Know where you stand',
++    subhead: 'Twelve questions, ninety seconds, no figures required.',
++    audience: 'Anyone who suspects they should have a plan and does not have one.',
++    calculatorId: 'net-worth',
++    leadIntent: 'not_sure',
++    pillar: 'prepare',
++    points: [
++      'Which of the four areas looks thinnest',
++      'What is already in reasonable shape',
++      'The three things most worth asking about',
++    ],
++  },
++  {
++    slug: 'financial-security',
++    headline: 'One unexpected expense away?',
++    subhead: 'Find out how much cushion you actually have.',
++    audience: 'People who cover the month but have nothing behind them.',
++    calculatorId: 'emergency-fund',
++    leadIntent: 'financial_resilience',
++    pillar: 'prepare',
++    points: [
++      'How many months of essentials your savings cover',
++      'What a sensible target looks like for your income stability',
++      'What the gap is in rands',
++    ],
++  },
++];
++
++export const getCampaign = (slug: string) => CAMPAIGNS.find((c) => c.slug === slug);
+diff --git a/src/content/guides.ts b/src/content/guides.ts
+new file mode 100644
+index 0000000..28036b4
+--- /dev/null
++++ b/src/content/guides.ts
+@@ -0,0 +1,167 @@
++/**
++ * Lead magnets (§26).
++ *
++ * DELIBERATE REFRAME: these are lists of QUESTIONS, not recommendations.
++ *
++ * A checklist saying "you should have six months of expenses saved" is financial
++ * advice published under the name of a licensed representative, without an advice
++ * process and without compliance review. A checklist saying "ask how many months your
++ * savings would actually cover" is an agenda for a conversation, which is exactly what
++ * this site is for and carries none of that risk.
++ *
++ * Everything here still needs Harika's review before launch, but nothing here asserts
++ * a financial fact or recommends an action.
++ */
++
++export interface Guide {
++  slug: string;
++  title: string;
++  blurb: string;
++  /** What someone gets, stated plainly so the gate is honest. */
++  contains: string;
++  leadIntent: string;
++  sections: { heading: string; questions: string[] }[];
++}
++
++export const GUIDES: Guide[] = [
++  {
++    slug: 'annual-review',
++    title: 'Annual financial review',
++    blurb: 'What to go through once a year, and what to ask about each thing.',
++    contains: '21 questions across five areas',
++    leadIntent: 'review_existing_cover',
++    sections: [
++      {
++        heading: 'Cover you already hold',
++        questions: [
++          'What would each policy actually pay out, and to whom?',
++          'When was each one last reviewed?',
++          'Which of them are through my employer, and what happens if I leave?',
++          'Are the premiums escalating, and by how much each year?',
++        ],
++      },
++      {
++        heading: 'What changed this year',
++        questions: [
++          'Did my income change enough to matter?',
++          'Did anyone join or leave the household?',
++          'Did I take on new debt, or clear any?',
++          'Did I change jobs, or is a change coming?',
++        ],
++      },
++      {
++        heading: 'Money set aside',
++        questions: [
++          'How many months of essentials would my accessible savings cover?',
++          'Am I still contributing what I think I am contributing?',
++          'What is my money actually invested in?',
++          'What am I paying in fees, in rands rather than percentages?',
++        ],
++      },
++      {
++        heading: 'Paperwork',
++        questions: [
++          'Is my will current, and does anyone know where it is?',
++          'Do my beneficiary nominations still say what I intend?',
++          'Does anyone know what I hold and where?',
++          'Are my details current with every provider?',
++        ],
++      },
++      {
++        heading: 'To raise with an adviser',
++        questions: [
++          'What am I paying you, and how are you paid?',
++          'Which product suppliers do you represent?',
++          'What would you look at first in my situation?',
++          'What are you not able to advise on?',
++          'What happens to my file if you stop practising?',
++        ],
++      },
++    ],
++  },
++  {
++    slug: 'new-parent',
++    title: 'New parent financial checklist',
++    blurb: 'What a new dependant changes, framed as things to check.',
++    contains: '16 questions across four areas',
++    leadIntent: 'providing_for_children',
++    sections: [
++      {
++        heading: 'The first month',
++        questions: [
++          'Is the child on my medical aid, and from what date?',
++          'What did registering them change about my cover?',
++          'Do I know what my maternity or paternity benefit actually pays?',
++          'What does the household run on while income is reduced?',
++        ],
++      },
++      {
++        heading: 'If something happened to me',
++        questions: [
++          'Who would raise this child, and is that written down anywhere?',
++          'What would the household need each month without my income?',
++          'Does my existing cover reflect a dependant who did not exist when I took it out?',
++          'Who is the beneficiary on each policy and retirement fund?',
++        ],
++      },
++      {
++        heading: 'The long horizon',
++        questions: [
++          'What is education likely to cost by the time it starts?',
++          'What am I saving toward it now, if anything?',
++          'Is that saving in something suited to an eighteen-year horizon?',
++          'What happens to it if I stop contributing for a year?',
++        ],
++      },
++      {
++        heading: 'Paperwork',
++        questions: [
++          'Is my will updated to include this child?',
++          'Have I nominated a guardian?',
++          'Is there a trust, and does it need one?',
++          'Does my partner know where all of this is kept?',
++        ],
++      },
++    ],
++  },
++  {
++    slug: 'changing-jobs',
++    title: 'Changing jobs',
++    blurb: 'What quietly stops when you resign, and what to ask before you do.',
++    contains: '14 questions across three areas',
++    leadIntent: 'employer_benefit_uncertainty',
++    sections: [
++      {
++        heading: 'What ends with the job',
++        questions: [
++          'What group life, disability and severe illness cover do I currently have through my employer?',
++          'Does any of it continue after my last day?',
++          'Can I convert any of it to a personal policy, and by when?',
++          'What does my medical aid arrangement depend on?',
++        ],
++      },
++      {
++        heading: 'The retirement fund',
++        questions: [
++          'What are my options for the fund balance?',
++          'What are the tax consequences of each option?',
++          'What would withdrawing cost me, in tax and in lost growth?',
++          'What fees apply to each destination?',
++        ],
++      },
++      {
++        heading: 'The new job',
++        questions: [
++          'What cover does the new employer provide, and from when?',
++          'Is there a waiting period, and am I exposed during it?',
++          'What is the employer contribution to retirement, and is it on top of my salary or inside it?',
++          'Is there a gap between the two jobs where I have no cover at all?',
++          'What did I have before that the new package does not replace?',
++          'Who do I tell about the change?',
++        ],
++      },
++    ],
++  },
++];
++
++export const getGuide = (slug: string) => GUIDES.find((g) => g.slug === slug);
+diff --git a/src/content/podcast.ts b/src/content/podcast.ts
+new file mode 100644
+index 0000000..6d80515
+--- /dev/null
++++ b/src/content/podcast.ts
+@@ -0,0 +1,70 @@
++/**
++ * Education centre content.
++ *
++ * §21 asked for ten written articles. Harika already publishes a podcast, so
++ * commissioning AI-written finance articles under her name would duplicate both her
++ * own content and Sanlam's blog (§48), and would put unreviewed financial content
++ * on a site advertising a licensed representative.
++ *
++ * So this section surfaces her real episodes instead.
++ *
++ * Titles, dates and durations are taken verbatim from the Spotify show page.
++ * There are NO episode summaries here: writing descriptions of episodes nobody on
++ * this project has listened to would be fabrication (§4).
++ *
++ * The `pillar` field is editorial categorisation inferred from titles, so it is
++ * genuinely a guess and marked as such. Harika should correct these.
++ */
++
++import type { PillarId } from '@/lib/check';
++
++export const SHOW = {
++  title: 'Meer as net geld / More than just money.',
++  host: 'Harika van der Merwe',
++  /** Verbatim from the show page. */
++  description:
++    'Real conversations about money, motherhood, relationships, careers and building the life you want.',
++  category: 'Business',
++  rating: 5,
++  ratingCount: 6,
++  url: 'https://open.spotify.com/show/033OI8ClChie4avziJnMMY',
++  artwork: 'https://i.scdn.co/image/ab6765630000ba8a84f32d526c24c6ac3e39a311',
++} as const;
++
++export interface Episode {
++  number: number;
++  title: string;
++  spotifyId: string;
++  published: string;
++  minutes: number;
++  language: 'en' | 'af';
++  /** Editorial guess from the title alone. Needs Harika's confirmation. */
++  pillar?: PillarId;
++}
++
++export const EPISODES: Episode[] = [
++  { number: 21, title: 'We are back!!', spotifyId: '6CW8vMQMoDb1SV7fNvtB3u', published: '2026-08-25', minutes: 15, language: 'en' },
++  { number: 20, title: 'Financial Friday', spotifyId: '0K9XQ6Nz4EUqHCBWovZo8T', published: '2026-08-07', minutes: 5, language: 'en', pillar: 'prepare' },
++  { number: 19, title: 'The day the paycheck stops', spotifyId: '3ILE3X7K2FDQY1FOzXbx2y', published: '2026-08-06', minutes: 7, language: 'en', pillar: 'protect' },
++  { number: 18, title: 'Ek het gedink ek het nog tyd', spotifyId: '3kT0r6wii6HkqqW3SMUJkK', published: '2026-08-06', minutes: 3, language: 'af', pillar: 'plan' },
++  { number: 17, title: 'Belasting', spotifyId: '35txDWaZdfKE4CXtDifGyG', published: '2026-08-05', minutes: 4, language: 'af', pillar: 'plan' },
++  { number: 16, title: 'The greatest gift you will ever leave', spotifyId: '5C01IPITiXOjzvBocIAeCU', published: '2026-08-05', minutes: 2, language: 'en', pillar: 'plan' },
++  { number: 15, title: 'Slow down, live a little', spotifyId: '1CkVCqX1AZRRFpUOzuydkH', published: '2026-07-28', minutes: 8, language: 'en' },
++  { number: 14, title: 'Ons almal figure dit nog uit', spotifyId: '0p0SBnSiIozK6kBHzah00K', published: '2026-07-28', minutes: 6, language: 'af' },
++  { number: 13, title: 'A episode from the heart', spotifyId: '5vyp3MzRaRC3dEiQhlZehq', published: '2026-07-27', minutes: 12, language: 'en' },
++  { number: 12, title: "Let's talk retirement", spotifyId: '0S17LIgxWqqxqeZCpSlpu4', published: '2026-07-21', minutes: 21, language: 'en', pillar: 'plan' },
++  { number: 11, title: 'When tomorrow arrives before you are ready', spotifyId: '569pZ8z15tCD43ID4CAaFk', published: '2026-07-20', minutes: 23, language: 'en', pillar: 'protect' },
++  { number: 10, title: 'My lewe te koop op Facebook Marketplace', spotifyId: '5P0VDXE8ue79aIAxhXPMG0', published: '2026-07-16', minutes: 20, language: 'af', pillar: 'prepare' },
++];
++
++export const episodeUrl = (id: string) => `https://open.spotify.com/episode/${id}`;
++
++export const episodesForPillar = (p: PillarId) => EPISODES.filter((e) => e.pillar === p);
++
++/** Calculator most relevant to an episode's pillar, for cross-linking (§21). */
++export const CALCULATOR_FOR_PILLAR: Record<PillarId, string> = {
++  protect: 'protection-gap',
++  prepare: 'emergency-fund',
++  grow: 'investment-growth',
++  plan: 'retirement-contribution',
++};
+diff --git a/src/lib/adviser-auth.ts b/src/lib/adviser-auth.ts
+new file mode 100644
+index 0000000..0f40d49
+--- /dev/null
++++ b/src/lib/adviser-auth.ts
+@@ -0,0 +1,42 @@
++import { createHash, timingSafeEqual } from 'crypto';
++import { cookies } from 'next/headers';
++
++/**
++ * Minimal gate for the adviser area.
++ *
++ * This is a shared passphrase, not real authentication. It is adequate for a single
++ * adviser looking at her own enquiries, and it is NOT adequate the moment a second
++ * person needs access, or if the dashboard ever shows more than contact details.
++ *
++ * Replace with Supabase Auth before this holds live client data. The RLS policies in
++ * supabase/migrations already expect a JWT with role='adviser'.
++ */
++const COOKIE = 'climeo_adviser';
++
++const digest = (s: string) => createHash('sha256').update(s).digest();
++
++export function verifyPassphrase(input: string): boolean {
++  const expected = process.env.ADVISER_PASSPHRASE;
++  if (!expected || expected.length < 12) return false;
++  // Constant-time: hashing first makes both sides equal length.
++  return timingSafeEqual(digest(input), digest(expected));
++}
++
++export function sessionToken(): string {
++  const secret = process.env.ADVISER_PASSPHRASE ?? '';
++  return createHash('sha256').update(`climeo:${secret}`).digest('hex');
++}
++
++export async function isAuthenticated(): Promise<boolean> {
++  if (!process.env.ADVISER_PASSPHRASE) return false;
++  const jar = await cookies();
++  const token = jar.get(COOKIE)?.value;
++  if (!token) return false;
++  try {
++    return timingSafeEqual(Buffer.from(token), Buffer.from(sessionToken()));
++  } catch {
++    return false;
++  }
++}
++
++export const COOKIE_NAME = COOKIE;
+diff --git a/src/lib/calculators-extra.ts b/src/lib/calculators-extra.ts
+new file mode 100644
+index 0000000..c00457d
+--- /dev/null
++++ b/src/lib/calculators-extra.ts
+@@ -0,0 +1,360 @@
++/**
++ * Remaining calculators (§15.3–§15.10), built on the framework in calculators.ts.
++ *
++ * Financial maths is centralised in the helpers below rather than repeated per
++ * calculator (§14). Every projection works in REAL terms — inflation is discounted
++ * out — so a figure thirty years away is expressed in today's money. Nominal
++ * projections make people feel far richer than they will be.
++ */
++
++import type { Calculator } from './calculators';
++
++const n = (v: Record<string, number | string>, k: string): number => {
++  const raw = v[k];
++  const parsed = typeof raw === 'number' ? raw : parseFloat(String(raw ?? '0'));
++  return Number.isFinite(parsed) ? parsed : 0;
++};
++
++/** Convert an annual rate to a monthly compounding rate. */
++export const monthlyRate = (annualPct: number): number =>
++  Math.pow(1 + annualPct / 100, 1 / 12) - 1;
++
++/** Real (after-inflation) annual rate. Fisher, not naive subtraction. */
++export const realRate = (nominalPct: number, inflationPct: number): number =>
++  ((1 + nominalPct / 100) / (1 + inflationPct / 100) - 1) * 100;
++
++/** Future value of a lump sum plus a recurring monthly contribution. */
++export function futureValue(pv: number, pmt: number, r: number, months: number): number {
++  if (months <= 0) return pv;
++  if (Math.abs(r) < 1e-12) return pv + pmt * months;
++  const growth = Math.pow(1 + r, months);
++  return pv * growth + pmt * ((growth - 1) / r);
++}
++
++/** Monthly contribution needed to reach a target. */
++export function requiredPayment(fv: number, pv: number, r: number, months: number): number {
++  if (months <= 0) return 0;
++  if (Math.abs(r) < 1e-12) return Math.max(0, (fv - pv) / months);
++  const growth = Math.pow(1 + r, months);
++  return Math.max(0, ((fv - pv * growth) * r) / (growth - 1));
++}
++
++/**
++ * Months to clear a debt. Returns -1 when the payment never clears it, which
++ * happens whenever the payment does not exceed the first month's interest.
++ */
++export function monthsToClear(balance: number, r: number, payment: number): number {
++  if (balance <= 0) return 0;
++  if (payment <= balance * r) return -1;
++  if (Math.abs(r) < 1e-12) return Math.ceil(balance / payment);
++  return Math.ceil(-Math.log(1 - (balance * r) / payment) / Math.log(1 + r));
++}
++
++export const retirementContribution: Calculator = {
++  id: 'retirement-contribution',
++  name: 'Retirement contributions',
++  category: 'plan',
++  description: 'Where your current contributions are heading, in today\'s money.',
++  fields: [
++    { id: 'age', label: 'Your age now', kind: 'number', min: 18, max: 80, default: 38 },
++    { id: 'retireAge', label: 'Age you would like to retire', kind: 'number', min: 45, max: 85, default: 65 },
++    { id: 'current', label: 'Retirement savings so far', kind: 'currency', min: 0, default: 750000 },
++    { id: 'monthly', label: 'Your monthly contribution', kind: 'currency', min: 0, default: 4500 },
++    { id: 'employer', label: 'Employer monthly contribution', kind: 'currency', min: 0, default: 3000 },
++    { id: 'targetIncome', label: 'Monthly income you want in retirement', kind: 'currency', hint: 'In today\'s money.', min: 0, default: 25000 },
++    { id: 'returnPct', label: 'Assumed return before inflation (%)', kind: 'number', min: 0, max: 20, step: 0.5, default: 10 },
++    { id: 'inflationPct', label: 'Assumed inflation (%)', kind: 'number', min: 0, max: 15, step: 0.5, default: 5 },
++  ],
++  outputs: [
++    { id: 'projected', label: 'Projected capital at retirement (today\'s money)', format: 'currency', emphasis: true },
++    { id: 'needed', label: 'Capital needed for that income', format: 'currency' },
++    { id: 'gap', label: 'Shortfall', format: 'currency' },
++    { id: 'extraNeeded', label: 'Extra per month to close it', format: 'currency' },
++  ],
++  assumptions: [
++    'Everything is shown in today\'s money, so figures stay comparable to what you earn now.',
++    'Capital needed uses a 4% first-year drawdown, a common planning convention rather than a guarantee.',
++    'Assumes contributions continue uninterrupted and are never withdrawn early.',
++    'Ignores tax, fees, and Regulation 28 constraints, all of which change the answer.',
++  ],
++  leadIntent: 'retirement',
++  compute: (v) => {
++    const months = Math.max(0, (n(v, 'retireAge') - n(v, 'age')) * 12);
++    const r = monthlyRate(realRate(n(v, 'returnPct'), n(v, 'inflationPct')));
++    const projected = futureValue(n(v, 'current'), n(v, 'monthly') + n(v, 'employer'), r, months);
++    const needed = (n(v, 'targetIncome') * 12) / 0.04;
++    const gap = Math.max(0, needed - projected);
++    return {
++      projected: Math.round(projected),
++      needed: Math.round(needed),
++      gap: Math.round(gap),
++      extraNeeded: Math.round(gap > 0 ? requiredPayment(gap, 0, r, months) : 0),
++    };
++  },
++};
++
++export const debtPayoff: Calculator = {
++  id: 'debt-payoff',
++  name: 'Debt payoff',
++  category: 'prepare',
++  description: 'How long a debt takes to clear, and what paying extra changes.',
++  fields: [
++    { id: 'balance', label: 'Outstanding balance', kind: 'currency', min: 0, default: 85000 },
++    { id: 'ratePct', label: 'Interest rate (%)', kind: 'number', min: 0, max: 60, step: 0.25, default: 18 },
++    { id: 'payment', label: 'Your monthly repayment', kind: 'currency', min: 0, default: 2500 },
++    { id: 'extra', label: 'Extra you could add each month', kind: 'currency', min: 0, default: 500 },
++  ],
++  outputs: [
++    { id: 'months', label: 'Time to clear at current repayment', format: 'months', emphasis: true },
++    { id: 'interest', label: 'Interest paid over that time', format: 'currency' },
++    { id: 'monthsWithExtra', label: 'Time to clear with the extra', format: 'months' },
++    { id: 'interestSaved', label: 'Interest saved by paying extra', format: 'currency' },
++  ],
++  assumptions: [
++    'Assumes a fixed rate and no further borrowing on the account.',
++    'Assumes every repayment is made in full and on time.',
++    'If your repayment is smaller than the monthly interest, the balance grows and the debt never clears.',
++  ],
++  leadIntent: 'covering_debts',
++  compute: (v) => {
++    const balance = n(v, 'balance');
++    const r = monthlyRate(n(v, 'ratePct'));
++    const pay = n(v, 'payment');
++    const payPlus = pay + n(v, 'extra');
++
++    const m1 = monthsToClear(balance, r, pay);
++    const m2 = monthsToClear(balance, r, payPlus);
++    const int1 = m1 > 0 ? m1 * pay - balance : -1;
++    const int2 = m2 > 0 ? m2 * payPlus - balance : -1;
++
++    return {
++      months: m1,
++      interest: int1 < 0 ? 0 : Math.round(int1),
++      monthsWithExtra: m2,
++      interestSaved: int1 > 0 && int2 > 0 ? Math.round(int1 - int2) : 0,
++    };
++  },
++};
++
++export const savingsGoal: Calculator = {
++  id: 'savings-goal',
++  name: 'Savings goal',
++  category: 'grow',
++  description: 'What it takes each month to reach a specific amount by a specific date.',
++  fields: [
++    { id: 'target', label: 'Amount you want', kind: 'currency', min: 0, default: 300000 },
++    { id: 'current', label: 'Saved so far', kind: 'currency', min: 0, default: 40000 },
++    { id: 'years', label: 'Years to get there', kind: 'number', min: 0, max: 50, step: 0.5, default: 5 },
++    { id: 'monthly', label: 'What you are putting away now', kind: 'currency', min: 0, default: 2500 },
++    { id: 'returnPct', label: 'Assumed return (%)', kind: 'number', min: 0, max: 20, step: 0.5, default: 8 },
++  ],
++  outputs: [
++    { id: 'required', label: 'Needed each month to reach it', format: 'currency', emphasis: true },
++    { id: 'projected', label: 'Where your current amount gets you', format: 'currency' },
++    { id: 'shortfall', label: 'Shortfall at that rate', format: 'currency' },
++  ],
++  assumptions: [
++    'Assumes a steady return, which no real investment delivers month to month.',
++    'Shown before tax and fees.',
++    'Shorter horizons should generally assume lower returns, because there is less time to recover from a bad year.',
++  ],
++  leadIntent: 'investments',
++  compute: (v) => {
++    const months = Math.round(n(v, 'years') * 12);
++    const r = monthlyRate(n(v, 'returnPct'));
++    const projected = futureValue(n(v, 'current'), n(v, 'monthly'), r, months);
++    return {
++      required: Math.round(requiredPayment(n(v, 'target'), n(v, 'current'), r, months)),
++      projected: Math.round(projected),
++      shortfall: Math.round(Math.max(0, n(v, 'target') - projected)),
++    };
++  },
++};
++
++export const educationPlanning: Calculator = {
++  id: 'education-planning',
++  name: 'Education planning',
++  category: 'plan',
++  description: 'What a education will likely cost by the time it starts, and the gap.',
++  fields: [
++    { id: 'childAge', label: 'Child\'s age now', kind: 'number', min: 0, max: 25, default: 4 },
++    { id: 'startAge', label: 'Age the education starts', kind: 'number', min: 1, max: 30, default: 18 },
++    { id: 'yearsOfStudy', label: 'Years of study', kind: 'number', min: 1, max: 10, default: 4 },
++    { id: 'costToday', label: 'Cost per year today', kind: 'currency', min: 0, default: 85000 },
++    { id: 'eduInflationPct', label: 'Education inflation (%)', kind: 'number', hint: 'Education has historically risen faster than general inflation.', min: 0, max: 20, step: 0.5, default: 9 },
++    { id: 'saved', label: 'Saved for this already', kind: 'currency', min: 0, default: 60000 },
++    { id: 'monthly', label: 'Saving each month toward it', kind: 'currency', min: 0, default: 1500 },
++    { id: 'returnPct', label: 'Assumed return (%)', kind: 'number', min: 0, max: 20, step: 0.5, default: 9 },
++  ],
++  outputs: [
++    { id: 'futureCost', label: 'Estimated total cost when it starts', format: 'currency', emphasis: true },
++    { id: 'projected', label: 'What your saving will have grown to', format: 'currency' },
++    { id: 'gap', label: 'Funding gap', format: 'currency' },
++    { id: 'extraNeeded', label: 'Extra per month to close it', format: 'currency' },
++  ],
++  assumptions: [
++    'Each year of study is inflated to the year it is actually paid, not all to the start date.',
++    'Assumes fees only. Accommodation, books and transport are frequently a third again on top.',
++    'Education inflation running ahead of general inflation is the single biggest driver here.',
++  ],
++  leadIntent: 'education_planning',
++  compute: (v) => {
++    const yearsToStart = Math.max(0, n(v, 'startAge') - n(v, 'childAge'));
++    const g = n(v, 'eduInflationPct') / 100;
++    const costToday = n(v, 'costToday');
++
++    let futureCost = 0;
++    for (let i = 0; i < Math.max(1, n(v, 'yearsOfStudy')); i++) {
++      futureCost += costToday * Math.pow(1 + g, yearsToStart + i);
++    }
++
++    const months = Math.round(yearsToStart * 12);
++    const r = monthlyRate(n(v, 'returnPct'));
++    const projected = futureValue(n(v, 'saved'), n(v, 'monthly'), r, months);
++    const gap = Math.max(0, futureCost - projected);
++
++    return {
++      futureCost: Math.round(futureCost),
++      projected: Math.round(projected),
++      gap: Math.round(gap),
++      extraNeeded: Math.round(gap > 0 ? requiredPayment(gap, 0, r, months) : 0),
++    };
++  },
++};
++
++export const investmentGrowth: Calculator = {
++  id: 'investment-growth',
++  name: 'Investment growth',
++  category: 'grow',
++  description: 'How much of a final amount is your own money, and how much is growth.',
++  fields: [
++    { id: 'initial', label: 'Starting amount', kind: 'currency', min: 0, default: 50000 },
++    { id: 'monthly', label: 'Added each month', kind: 'currency', min: 0, default: 2000 },
++    { id: 'years', label: 'Years invested', kind: 'number', min: 0, max: 50, step: 0.5, default: 15 },
++    { id: 'returnPct', label: 'Assumed return (%)', kind: 'number', min: 0, max: 20, step: 0.5, default: 10 },
++    { id: 'inflationPct', label: 'Inflation (%)', kind: 'number', min: 0, max: 15, step: 0.5, default: 5 },
++  ],
++  outputs: [
++    { id: 'nominal', label: 'Projected value', format: 'currency', emphasis: true },
++    { id: 'real', label: 'What that is worth in today\'s money', format: 'currency', emphasis: true },
++    { id: 'contributed', label: 'Your own money in', format: 'currency' },
++    { id: 'growth', label: 'Growth on top', format: 'currency' },
++  ],
++  assumptions: [
++    'Shows both the headline number and its real purchasing power, because the gap between them is the point.',
++    'Assumes a constant return. Real markets are nothing like constant.',
++    'Before tax and fees. Fees compound against you exactly as returns compound for you.',
++  ],
++  leadIntent: 'investments',
++  compute: (v) => {
++    const months = Math.round(n(v, 'years') * 12);
++    const rNom = monthlyRate(n(v, 'returnPct'));
++    const rReal = monthlyRate(realRate(n(v, 'returnPct'), n(v, 'inflationPct')));
++    const nominal = futureValue(n(v, 'initial'), n(v, 'monthly'), rNom, months);
++    const contributed = n(v, 'initial') + n(v, 'monthly') * months;
++    return {
++      nominal: Math.round(nominal),
++      real: Math.round(futureValue(n(v, 'initial'), n(v, 'monthly'), rReal, months)),
++      contributed: Math.round(contributed),
++      growth: Math.round(Math.max(0, nominal - contributed)),
++    };
++  },
++};
++
++export const netWorth: Calculator = {
++  id: 'net-worth',
++  name: 'Net worth',
++  category: 'prepare',
++  description: 'What you own less what you owe, and how much of it you could actually reach.',
++  fields: [
++    { id: 'property', label: 'Property value', kind: 'currency', min: 0, default: 1800000 },
++    { id: 'cash', label: 'Cash and savings', kind: 'currency', min: 0, default: 120000 },
++    { id: 'investments', label: 'Investments', kind: 'currency', min: 0, default: 350000 },
++    { id: 'retirement', label: 'Retirement savings', kind: 'currency', min: 0, default: 750000 },
++    { id: 'otherAssets', label: 'Vehicles and other assets', kind: 'currency', min: 0, default: 280000 },
++    { id: 'bond', label: 'Bond outstanding', kind: 'currency', min: 0, default: 1100000 },
++    { id: 'vehicleDebt', label: 'Vehicle finance', kind: 'currency', min: 0, default: 190000 },
++    { id: 'cards', label: 'Credit cards and store accounts', kind: 'currency', min: 0, default: 35000 },
++    { id: 'loans', label: 'Personal loans', kind: 'currency', min: 0, default: 0 },
++  ],
++  outputs: [
++    { id: 'assets', label: 'Total assets', format: 'currency' },
++    { id: 'liabilities', label: 'Total liabilities', format: 'currency' },
++    { id: 'net', label: 'Net worth', format: 'currency', emphasis: true },
++    { id: 'liquid', label: 'Reachable within a month', format: 'currency', emphasis: true },
++  ],
++  assumptions: [
++    'Liquid net worth excludes property and retirement savings, because neither is money you can reach this month.',
++    'Retirement savings are counted at face value, before the tax due when you eventually draw them.',
++    'Vehicles are usually worth less than owners think, and depreciate while the finance does not.',
++  ],
++  leadIntent: 'financial_resilience',
++  compute: (v) => {
++    const assets = n(v, 'property') + n(v, 'cash') + n(v, 'investments') + n(v, 'retirement') + n(v, 'otherAssets');
++    const liabilities = n(v, 'bond') + n(v, 'vehicleDebt') + n(v, 'cards') + n(v, 'loans');
++    const shortTermDebt = n(v, 'cards') + n(v, 'loans');
++    return {
++      assets: Math.round(assets),
++      liabilities: Math.round(liabilities),
++      net: Math.round(assets - liabilities),
++      liquid: Math.round(n(v, 'cash') + n(v, 'investments') - shortTermDebt),
++    };
++  },
++};
++
++export const protectionGap: Calculator = {
++  id: 'protection-gap',
++  name: 'Protection gap',
++  category: 'protect',
++  description: 'Income replacement, debt and dependants set against what is already covered.',
++  fields: [
++    { id: 'income', label: 'Your monthly income after tax', kind: 'currency', min: 0, default: 42000 },
++    { id: 'replacePct', label: 'Share of it the household still needs (%)', kind: 'number', hint: 'Rarely 100% — some costs go with you.', min: 0, max: 100, step: 5, default: 75 },
++    { id: 'years', label: 'Years it would be needed', kind: 'number', min: 0, max: 40, default: 15 },
++    { id: 'debts', label: 'All debt to be settled', kind: 'currency', min: 0, default: 1290000 },
++    { id: 'finalCosts', label: 'Estate and funeral costs', kind: 'currency', min: 0, default: 120000 },
++    { id: 'existingCover', label: 'Life cover in place', kind: 'currency', min: 0, default: 1500000 },
++    { id: 'employerCover', label: 'Cover through your employer', kind: 'currency', min: 0, default: 900000 },
++    { id: 'liquidAssets', label: 'Assets that could be used', kind: 'currency', min: 0, default: 200000 },
++    { id: 'returnPct', label: 'Return on the payout (%)', kind: 'number', min: 0, max: 15, step: 0.5, default: 8 },
++    { id: 'inflationPct', label: 'Inflation (%)', kind: 'number', min: 0, max: 15, step: 0.5, default: 5 },
++  ],
++  outputs: [
++    { id: 'incomeCapital', label: 'Capital needed to produce that income', format: 'currency' },
++    { id: 'totalNeed', label: 'Total need', format: 'currency' },
++    { id: 'covered', label: 'Already covered', format: 'currency' },
++    { id: 'gap', label: 'Protection gap', format: 'currency', emphasis: true },
++  ],
++  assumptions: [
++    'Income need is discounted at a real rate, so it reflects a payout invested and drawn down, not cash under a mattress.',
++    'Employer cover usually ends when the job does, so counting on it is a risk in itself.',
++    'Ignores estate duty, executor fees and capital gains, all of which reduce what actually reaches your family.',
++    'This estimates a shortfall. It does not recommend a product, an amount, or a provider.',
++  ],
++  leadIntent: 'family_protection',
++  compute: (v) => {
++    const monthlyNeed = n(v, 'income') * (n(v, 'replacePct') / 100);
++    const months = Math.max(0, n(v, 'years') * 12);
++    const r = monthlyRate(realRate(n(v, 'returnPct'), n(v, 'inflationPct')));
++
++    // Present value of an annuity in real terms.
++    const incomeCapital = Math.abs(r) < 1e-12
++      ? monthlyNeed * months
++      : monthlyNeed * ((1 - Math.pow(1 + r, -months)) / r);
++
++    const totalNeed = incomeCapital + n(v, 'debts') + n(v, 'finalCosts');
++    const covered = n(v, 'existingCover') + n(v, 'employerCover') + n(v, 'liquidAssets');
++
++    return {
++      incomeCapital: Math.round(incomeCapital),
++      totalNeed: Math.round(totalNeed),
++      covered: Math.round(covered),
++      gap: Math.round(Math.max(0, totalNeed - covered)),
++    };
++  },
++};
++
++export const ADDITIONAL_CALCULATORS: Calculator[] = [
++  retirementContribution, debtPayoff, savingsGoal, educationPlanning,
++  investmentGrowth, netWorth, protectionGap,
++];
+diff --git a/src/lib/calculators.ts b/src/lib/calculators.ts
+index 90c3662..50ab731 100644
+--- a/src/lib/calculators.ts
++++ b/src/lib/calculators.ts
+@@ -160,7 +160,11 @@ export const incomeResilience: Calculator = {
+   },
+ };
+ 
+-export const CALCULATORS: Calculator[] = [emergencyFund, lifeCoverNeeds, incomeResilience];
++import { ADDITIONAL_CALCULATORS } from './calculators-extra';
++
++export const CALCULATORS: Calculator[] = [
++  emergencyFund, lifeCoverNeeds, incomeResilience, ...ADDITIONAL_CALCULATORS,
++];
+ 
+ export const getCalculator = (id: string): Calculator | undefined =>
+   CALCULATORS.find((c) => c.id === id);
+diff --git a/src/lib/compliance.ts b/src/lib/compliance.ts
+index e293153..02d0f01 100644
+--- a/src/lib/compliance.ts
++++ b/src/lib/compliance.ts
+@@ -1,4 +1,6 @@
+-import { compliance, PLACEHOLDER, type Placeholder } from '@/config/adviser';
++import { adviser, compliance, PLACEHOLDER, type Placeholder } from '@/config/adviser';
++
++const adviserName = adviser.name;
+ 
+ export function isPlaceholder(v: unknown): v is Placeholder {
+   return v === PLACEHOLDER;
+@@ -14,11 +16,22 @@ export function complianceText(v: unknown, label: string): string {
+   return isPlaceholder(v) ? `[${label} — PENDING COMPLIANCE INPUT]` : String(v);
+ }
+ 
++/**
++ * Disclosure sentence, phrased for the confirmed capacity.
++ * A representative and an FSP require materially different wording.
++ */
++export function disclosureSentence(): string {
++  const entity = complianceText(compliance.licensedEntity, 'LICENSED ENTITY');
++  const fsp = complianceText(compliance.fspNumber, 'FSP NUMBER');
++  return compliance.capacity === 'representative'
++    ? `${adviserName} provides financial advice as an appointed representative of ${entity}, FSP ${fsp}. She does not hold a financial services licence in her own name.`
++    : `${adviserName} provides financial advice through ${entity}, FSP ${fsp}.`;
++}
++
+ /** Everything still outstanding before this site may lawfully go live. */
+ export function outstandingComplianceItems(): string[] {
+   const missing: string[] = [];
+-  if (isPlaceholder(compliance.capacity)) missing.push('Adviser capacity (FSP vs representative)');
+-  if (isPlaceholder(compliance.fspNumber)) missing.push('FSP licence number');
++  if (isPlaceholder(compliance.fspNumber)) missing.push('Approval to display the FSP licence number');
+   if (isPlaceholder(compliance.licensedEntity)) missing.push('Licensed entity legal name');
+   if (isPlaceholder(compliance.responsibleParty)) missing.push('POPIA responsible party');
+   if (isPlaceholder(compliance.informationOfficer)) missing.push('POPIA Information Officer');
+diff --git a/src/lib/leads-store.ts b/src/lib/leads-store.ts
+new file mode 100644
+index 0000000..683c516
+--- /dev/null
++++ b/src/lib/leads-store.ts
+@@ -0,0 +1,34 @@
++import type { StoredLead } from './leads';
++
++/**
++ * Read side of the lead store.
++ *
++ * Returns `null` when no database is configured, which is the current state and is
++ * deliberate: nothing writes to Supabase until the POPIA responsible party is settled
++ * (see supabase/migrations/0001_init.sql). The dashboard renders an honest empty state
++ * rather than pretending to be connected.
++ */
++export interface LeadRow extends StoredLead {
++  status: string;
++}
++
++export function isStoreConfigured(): boolean {
++  return Boolean(process.env.SUPABASE_URL && process.env.SUPABASE_SERVICE_ROLE_KEY);
++}
++
++export async function listLeads(): Promise<LeadRow[] | null> {
++  if (!isStoreConfigured()) return null;
++
++  const res = await fetch(
++    `${process.env.SUPABASE_URL}/rest/v1/leads?select=*&order=created_at.desc&limit=200`,
++    {
++      headers: {
++        apikey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
++        Authorization: `Bearer ${process.env.SUPABASE_SERVICE_ROLE_KEY!}`,
++      },
++      cache: 'no-store',
++    },
++  );
++  if (!res.ok) throw new Error(`Supabase responded ${res.status}`);
++  return res.json();
++}
+diff --git a/src/lib/utm.ts b/src/lib/utm.ts
+new file mode 100644
+index 0000000..ab36873
+--- /dev/null
++++ b/src/lib/utm.ts
+@@ -0,0 +1,16 @@
++/** UTM capture (§25). Read-only from the URL; nothing is stored client-side. */
++export interface Utm {
++  utmSource?: string;
++  utmMedium?: string;
++  utmCampaign?: string;
++}
++
++export function readUtm(search: string): Utm {
++  const p = new URLSearchParams(search);
++  const pick = (k: string) => p.get(k)?.slice(0, 80) || undefined;
++  return {
++    utmSource: pick('utm_source'),
++    utmMedium: pick('utm_medium'),
++    utmCampaign: pick('utm_campaign'),
++  };
++}
+diff --git a/supabase/migrations/0001_init.sql b/supabase/migrations/0001_init.sql
+new file mode 100644
+index 0000000..e2778c7
+--- /dev/null
++++ b/supabase/migrations/0001_init.sql
+@@ -0,0 +1,185 @@
++-- Climeo schema (§28)
++--
++-- ⚠️  DO NOT APPLY THIS UNTIL THE POPIA RESPONSIBLE PARTY IS SETTLED.
++--
++-- Harika advises as a representative under Sanlam's FSP licence. Client contact
++-- details and financial information held in a third-party Supabase project sit
++-- outside her FSP's governance. Whether that is permitted at all is a question for
++-- Concept Wealth's key individual, not a technical decision. The schema is written
++-- and ready; applying it is a compliance call.
++--
++-- Design principle: PII and analytics NEVER share a table.
++--   leads                  -> personal information, locked down hard
++--   lead_consents          -> immutable audit of exactly what was agreed to
++--   assessment_sessions    -> anonymous, no join key back to a person
++--   calculator_sessions    -> anonymous, no join key back to a person
++--
++-- The anonymous tables carry no lead_id on purpose. Being able to join a check
++-- result back to a named person turns aggregate analytics into a profile of
++-- someone's finances, which is exactly what data minimisation is meant to prevent.
++
++create extension if not exists "pgcrypto";
++
++-- ---------------------------------------------------------------------------
++-- Personal information
++-- ---------------------------------------------------------------------------
++
++create type lead_status as enum (
++  'new', 'contacted', 'meeting_booked', 'follow_up',
++  'converted', 'not_suitable', 'closed'
++);
++
++create type contact_method as enum ('email', 'phone', 'whatsapp');
++
++create table leads (
++  id                uuid primary key default gen_random_uuid(),
++  created_at        timestamptz not null default now(),
++
++  first_name        text not null check (length(first_name) between 1 and 80),
++  surname           text check (length(surname) <= 80),
++  email             text not null check (email ~* '^[^@\s]+@[^@\s]+\.[^@\s]+$'),
++  mobile            text check (length(mobile) <= 30),
++
++  intent            text,
++  preferred_contact contact_method not null default 'email',
++  message           text check (length(message) <= 1200),
++
++  -- Band only. Individual answers are deliberately never stored.
++  check_band        text check (check_band in ('attention','developing','ontrack','strong')),
++
++  source            text not null default 'site',
++  campaign          text,
++  utm_source        text,
++  utm_medium        text,
++  utm_campaign      text,
++
++  status            lead_status not null default 'new',
++  adviser_notes     text,
++  updated_at        timestamptz not null default now()
++);
++
++create index leads_created_at_idx on leads (created_at desc);
++create index leads_status_idx on leads (status);
++
++-- ---------------------------------------------------------------------------
++-- Consent audit — append only, never updated, never deleted
++-- ---------------------------------------------------------------------------
++
++create table lead_consents (
++  id                 uuid primary key default gen_random_uuid(),
++  lead_id            uuid not null references leads(id) on delete cascade,
++  recorded_at        timestamptz not null default now(),
++
++  version            text not null,
++  contact_wording    text not null,
++  contact_agreed_at  timestamptz not null,
++
++  -- Null means marketing consent was NOT given. Never store a default of true.
++  marketing_wording  text,
++  marketing_agreed_at timestamptz,
++
++  -- Set when consent is later withdrawn. The original record is never altered.
++  withdrawn_at       timestamptz,
++
++  constraint marketing_pair check (
++    (marketing_wording is null and marketing_agreed_at is null)
++    or (marketing_wording is not null and marketing_agreed_at is not null)
++  )
++);
++
++create index lead_consents_lead_idx on lead_consents (lead_id);
++
++-- A lead may be contacted about their enquiry. Marketing needs live consent.
++create view marketable_leads as
++  select l.*
++  from leads l
++  join lead_consents c on c.lead_id = l.id
++  where c.marketing_agreed_at is not null
++    and c.withdrawn_at is null;
++
++-- ---------------------------------------------------------------------------
++-- Anonymous analytics — no route back to a person
++-- ---------------------------------------------------------------------------
++
++create table assessment_sessions (
++  id           uuid primary key default gen_random_uuid(),
++  created_at   timestamptz not null default now(),
++  completed    boolean not null default false,
++  band         text check (band in ('attention','developing','ontrack','strong')),
++  protect_band text,
++  prepare_band text,
++  grow_band    text,
++  plan_band    text,
++  campaign     text
++);
++
++create table calculator_sessions (
++  id            uuid primary key default gen_random_uuid(),
++  created_at    timestamptz not null default now(),
++  calculator_id text not null,
++  completed     boolean not null default false,
++  campaign      text
++);
++
++-- ---------------------------------------------------------------------------
++-- Row Level Security
++-- ---------------------------------------------------------------------------
++
++alter table leads enable row level security;
++alter table lead_consents enable row level security;
++alter table assessment_sessions enable row level security;
++alter table calculator_sessions enable row level security;
++
++-- No anon policies on leads at all. The public site writes via a server route using
++-- the service role, never from the browser. An anon insert policy here would let
++-- anyone POST directly to PostgREST and flood the table.
++
++create policy "adviser reads leads"
++  on leads for select
++  to authenticated
++  using (auth.jwt() ->> 'role' = 'adviser');
++
++create policy "adviser updates lead status"
++  on leads for update
++  to authenticated
++  using (auth.jwt() ->> 'role' = 'adviser')
++  with check (auth.jwt() ->> 'role' = 'adviser');
++
++create policy "adviser reads consents"
++  on lead_consents for select
++  to authenticated
++  using (auth.jwt() ->> 'role' = 'adviser');
++
++-- Deliberately no update or delete policy on lead_consents.
++-- An audit trail you can edit is not an audit trail.
++
++create policy "adviser reads assessment sessions"
++  on assessment_sessions for select
++  to authenticated
++  using (auth.jwt() ->> 'role' = 'adviser');
++
++create policy "adviser reads calculator sessions"
++  on calculator_sessions for select
++  to authenticated
++  using (auth.jwt() ->> 'role' = 'adviser');
++
++-- ---------------------------------------------------------------------------
++-- Housekeeping
++-- ---------------------------------------------------------------------------
++
++create or replace function touch_updated_at() returns trigger
++language plpgsql as $$
++begin
++  new.updated_at = now();
++  return new;
++end;
++$$;
++
++create trigger leads_touch_updated_at
++  before update on leads
++  for each row execute function touch_updated_at();
++
++comment on table leads is
++  'Personal information. Retention period must be set by the responsible party once identified.';
++comment on table lead_consents is
++  'Append-only POPIA consent audit. Never update or delete rows here.';
+diff --git a/tests/calculators-extra.test.ts b/tests/calculators-extra.test.ts
+new file mode 100644
+index 0000000..2089219
+--- /dev/null
++++ b/tests/calculators-extra.test.ts
+@@ -0,0 +1,192 @@
++import { describe, it, expect } from 'vitest';
++import {
++  monthlyRate, realRate, futureValue, requiredPayment, monthsToClear,
++  retirementContribution, debtPayoff, savingsGoal, educationPlanning,
++  investmentGrowth, netWorth, protectionGap,
++} from '../src/lib/calculators-extra';
++import { CALCULATORS } from '../src/lib/calculators';
++
++describe('maths helpers', () => {
++  it('compounds an annual rate monthly rather than dividing by twelve', () => {
++    const r = monthlyRate(12);
++    expect(Math.pow(1 + r, 12) - 1).toBeCloseTo(0.12, 10);
++    expect(r).toBeLessThan(0.01); // naive 12/12 would be exactly 0.01
++  });
++
++  it('uses Fisher for real rates, not naive subtraction', () => {
++    expect(realRate(10, 5)).toBeCloseTo(4.7619, 3);
++    expect(realRate(10, 5)).not.toBeCloseTo(5, 3);
++  });
++
++  it('handles a zero rate without dividing by zero', () => {
++    expect(futureValue(1000, 100, 0, 12)).toBe(2200);
++    expect(requiredPayment(2200, 1000, 0, 12)).toBe(100);
++  });
++
++  it('round-trips future value and required payment', () => {
++    const r = monthlyRate(9);
++    const pmt = requiredPayment(500000, 50000, r, 120);
++    expect(futureValue(50000, pmt, r, 120)).toBeCloseTo(500000, 2);
++  });
++
++  it('reports -1 when a repayment never clears the debt', () => {
++    const r = monthlyRate(24);
++    expect(monthsToClear(100000, r, 100)).toBe(-1);
++    expect(monthsToClear(100000, r, 5000)).toBeGreaterThan(0);
++  });
++
++  it('clears a zero-interest debt by simple division', () => {
++    expect(monthsToClear(12000, 0, 1000)).toBe(12);
++  });
++});
++
++describe('retirement contributions', () => {
++  it('uses a 4% drawdown to size the capital needed', () => {
++    const r = retirementContribution.compute({
++      age: 40, retireAge: 65, current: 0, monthly: 0, employer: 0,
++      targetIncome: 20000, returnPct: 10, inflationPct: 5,
++    });
++    expect(r.needed).toBe(6000000); // 20000*12/0.04
++    expect(r.projected).toBe(0);
++    expect(r.gap).toBe(6000000);
++  });
++
++  it('needs no extra contribution once projection covers the need', () => {
++    const r = retirementContribution.compute({
++      age: 30, retireAge: 65, current: 5000000, monthly: 20000, employer: 20000,
++      targetIncome: 5000, returnPct: 10, inflationPct: 5,
++    });
++    expect(r.gap).toBe(0);
++    expect(r.extraNeeded).toBe(0);
++  });
++
++  it('does not project growth when already at retirement age', () => {
++    const r = retirementContribution.compute({
++      age: 65, retireAge: 65, current: 1000000, monthly: 5000, employer: 0,
++      targetIncome: 10000, returnPct: 10, inflationPct: 5,
++    });
++    expect(r.projected).toBe(1000000);
++  });
++});
++
++describe('debt payoff', () => {
++  it('shows extra payments shortening the term and saving interest', () => {
++    const r = debtPayoff.compute({ balance: 100000, ratePct: 18, payment: 3000, extra: 1000 });
++    expect(r.monthsWithExtra).toBeLessThan(r.months as number);
++    expect(r.interestSaved).toBeGreaterThan(0);
++  });
++
++  it('flags a repayment that never clears', () => {
++    const r = debtPayoff.compute({ balance: 100000, ratePct: 20, payment: 500, extra: 0 });
++    expect(r.months).toBe(-1);
++    expect(r.interest).toBe(0);
++  });
++});
++
++describe('education planning', () => {
++  it('inflates each year of study to the year it is paid', () => {
++    const one = educationPlanning.compute({
++      childAge: 17, startAge: 18, yearsOfStudy: 1, costToday: 100000,
++      eduInflationPct: 10, saved: 0, monthly: 0, returnPct: 0,
++    });
++    expect(one.futureCost).toBe(110000);
++
++    const two = educationPlanning.compute({
++      childAge: 17, startAge: 18, yearsOfStudy: 2, costToday: 100000,
++      eduInflationPct: 10, saved: 0, monthly: 0, returnPct: 0,
++    });
++    expect(two.futureCost).toBe(231000); // 110000 + 121000, not 220000
++  });
++});
++
++describe('investment growth', () => {
++  it('separates contributions from growth', () => {
++    const r = investmentGrowth.compute({
++      initial: 10000, monthly: 1000, years: 10, returnPct: 10, inflationPct: 5,
++    });
++    expect(r.contributed).toBe(130000);
++    expect(Number(r.growth)).toBe(Number(r.nominal) - 130000);
++  });
++
++  it('shows real value below nominal whenever inflation is positive', () => {
++    const r = investmentGrowth.compute({
++      initial: 100000, monthly: 0, years: 20, returnPct: 10, inflationPct: 5,
++    });
++    expect(Number(r.real)).toBeLessThan(Number(r.nominal));
++  });
++
++  it('leaves real equal to nominal when inflation is zero', () => {
++    const r = investmentGrowth.compute({
++      initial: 100000, monthly: 500, years: 10, returnPct: 8, inflationPct: 0,
++    });
++    expect(Number(r.real)).toBe(Number(r.nominal));
++  });
++});
++
++describe('net worth', () => {
++  it('excludes property and retirement from the liquid figure', () => {
++    const r = netWorth.compute({
++      property: 2000000, cash: 100000, investments: 200000, retirement: 500000,
++      otherAssets: 100000, bond: 1200000, vehicleDebt: 100000, cards: 50000, loans: 0,
++    });
++    expect(r.assets).toBe(2900000);
++    expect(r.liabilities).toBe(1350000);
++    expect(r.net).toBe(1550000);
++    expect(r.liquid).toBe(250000); // 100k + 200k - 50k
++  });
++
++  it('can report negative net worth rather than clamping at zero', () => {
++    const r = netWorth.compute({
++      property: 0, cash: 0, investments: 0, retirement: 0, otherAssets: 0,
++      bond: 0, vehicleDebt: 0, cards: 80000, loans: 20000,
++    });
++    expect(r.net).toBe(-100000);
++  });
++});
++
++describe('protection gap', () => {
++  it('discounts future income need rather than multiplying it flat', () => {
++    const r = protectionGap.compute({
++      income: 40000, replacePct: 100, years: 20, debts: 0, finalCosts: 0,
++      existingCover: 0, employerCover: 0, liquidAssets: 0, returnPct: 8, inflationPct: 5,
++    });
++    expect(Number(r.incomeCapital)).toBeLessThan(40000 * 12 * 20);
++    expect(Number(r.incomeCapital)).toBeGreaterThan(0);
++  });
++
++  it('nets all cover sources off the need and never goes negative', () => {
++    const r = protectionGap.compute({
++      income: 10000, replacePct: 50, years: 1, debts: 0, finalCosts: 0,
++      existingCover: 5000000, employerCover: 1000000, liquidAssets: 0,
++      returnPct: 8, inflationPct: 5,
++    });
++    expect(r.gap).toBe(0);
++  });
++});
++
++describe('calculator registry', () => {
++  it('exposes all ten calculators with unique ids', () => {
++    expect(CALCULATORS).toHaveLength(10);
++    expect(new Set(CALCULATORS.map((c) => c.id)).size).toBe(10);
++  });
++
++  it('gives every calculator assumptions, outputs and a disclaimer-worthy shape', () => {
++    for (const c of CALCULATORS) {
++      expect(c.fields.length).toBeGreaterThan(0);
++      expect(c.outputs.length).toBeGreaterThan(0);
++      expect(c.assumptions.length).toBeGreaterThan(0);
++      expect(c.leadIntent).toBeTruthy();
++    }
++  });
++
++  it('produces finite numbers for every calculator at its defaults', () => {
++    for (const c of CALCULATORS) {
++      const defaults = Object.fromEntries(c.fields.map((f) => [f.id, f.default ?? 0]));
++      const out = c.compute(defaults);
++      for (const o of c.outputs) {
++        const val = out[o.id];
++        expect(Number.isFinite(Number(val)), `${c.id}.${o.id} was ${val}`).toBe(true);
++      }
++    }
++  });
++});

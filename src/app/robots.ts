@@ -3,7 +3,7 @@ import { site } from '@/config/adviser';
 
 export default function robots(): MetadataRoute.Robots {
   return {
-    rules: { userAgent: '*', allow: '/', disallow: ['/api/'] },
+    rules: { userAgent: '*', allow: '/', disallow: ['/api/', '/adviser/', '/campaign/'] },
     sitemap: `${site.domain}/sitemap.xml`,
   };
 }

@@ -1,7 +1,8 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { adviser, compliance } from '@/config/adviser';
-import { complianceText } from '@/lib/compliance';
+import { adviser } from '@/config/adviser';
+import { disclosureSentence } from '@/lib/compliance';
+import { SocialLinks } from '@/components/SocialLinks';
 
 export const metadata: Metadata = {
   title: 'About Harika',
@@ -30,13 +31,18 @@ export default function AboutPage() {
         Sanlam&rsquo;s corporate website. The tools here are educational: they help you
         work out what to ask, and nothing on this site is a recommendation.
       </p>
+      <p className="mt-4">{disclosureSentence()}</p>
       <p className="mt-4">
-        Actual financial advice happens through Harika in her capacity at{' '}
-        {adviser.practice}, under {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')}{' '}
-        (FSP {complianceText(compliance.fspNumber, 'FSP NUMBER')}). Before any advice is
-        given you should receive a disclosure letter setting out what she may advise on,
-        which product suppliers she represents, and how she is paid.
+        Before any advice is given you should receive a disclosure letter setting out what
+        she may advise on, which product suppliers she represents, and how she is paid.
       </p>
+
+      <h2 className="mt-16">Follow Harika</h2>
+      <p className="mt-4 text-[var(--color-bark)]">
+        She publishes a podcast and posts regularly. Worth a listen before you book
+        anything.
+      </p>
+      <SocialLinks className="mt-6" />
 
       <h2 className="mt-16">Get in touch</h2>
       <p className="mt-4">

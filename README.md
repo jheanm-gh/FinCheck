@@ -73,8 +73,26 @@ Default `log` needs no credentials. See `.env.example`.
 
 Nothing writes to a database yet, deliberately, pending the POPIA question above.
 
+## Content decisions worth preserving
+
+**The education centre is her podcast, not articles.** §21 asked for ten written
+articles. Harika already publishes *Meer as net geld / More than just money.* Writing
+finance articles under her name would duplicate her own content and Sanlam's blog, and
+would put unreviewed financial content on a site advertising a licensed representative.
+`src/content/podcast.ts` carries real titles, dates and durations only — no invented
+episode summaries. The `pillar` mappings are editorial guesses from titles and need
+her correction.
+
+**Lead magnets are questions, not advice.** A checklist saying "keep six months of
+expenses saved" is financial advice published without an advice process. A checklist
+saying "ask how many months your savings would cover" is an agenda. All three guides in
+`src/content/guides.ts` are framed as questions for exactly this reason.
+
+**Campaign pages are noindex.** They are ad destinations, not organic search targets,
+and indexing them competes with the pages that should rank.
+
 ## Not built yet
 
-Education centre, campaign landing pages, lead magnets, adviser dashboard, Supabase
-schema, and 7 of the 10 calculators. The three built prove the framework: adding one is
-a definition in `calculators.ts`, not a new page.
+Seven more lead magnets, Protect/Prepare/Grow/Plan hub pages, analytics event wiring,
+and Afrikaans localisation. The podcast is bilingual and the site is English-only — for
+a Pretoria practice that is a real gap, not a nice-to-have.

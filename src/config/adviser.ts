@@ -32,13 +32,8 @@ export const adviser = {
   phoneDisplay: '083 331 6235',
   phoneE164: '+27833316235',
   whatsapp: 'https://wa.me/27833316235',
-  email: 'harika.vandermerwe@conceptwealth.com',
-
-  /**
-   * VERIFIED but AMBIGUOUS: the practice footer lists jdhenry@conceptwealth.co.za
-   * (.co.za) while Harika's own address is @conceptwealth.com (.com). Confirm which
-   * domain is correct before enabling any outbound mail from this site.
-   */
+  /** CONFIRMED by the practice: .co.za, not the .com shown on the Sanlam profile. */
+  email: 'harika.vandermerwe@conceptwealth.co.za',
   practiceEmail: 'jdhenry@conceptwealth.co.za',
   practiceAddress:
     'Sanlynn Building, Cnr Sanlam & Alkantrand Road, Lynnwood Manor, Pretoria, 0081',
@@ -48,7 +43,16 @@ export const adviser = {
     sanlamProfile:
       'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark/adviser/harika-van-der-merwe/88842552158368',
     conceptWealth: 'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark',
-    linkedin: 'https://www.linkedin.com/in/harika-van-der-merwe-a46690254/',
+    linkedin: 'https://www.linkedin.com/in/harika-van-der-merwe-a46690254',
+
+    /**
+     * A Facebook /share/ redirect, not her canonical page URL. It resolves today but
+     * these are not guaranteed stable — replace with the real page URL when you have it.
+     */
+    facebook: 'https://www.facebook.com/share/1EZwKsmDHm/',
+
+    /** Her podcast. Genuine owned content, not a third-party resource. */
+    podcast: 'https://open.spotify.com/show/033OI8ClChie4avziJnMMY',
     sanlamPrivacy: 'https://www.sanlam.com/sanlams-privacy-policy.php',
     sanlamTerms: 'https://www.sanlam.com/terms-of-use.php',
   },
@@ -73,10 +77,17 @@ export const adviser = {
  * must be confirmed rather than guessed.
  */
 export const compliance = {
-  /** Is she an authorised FSP, or a representative under one? Determines wording. */
-  capacity: PLACEHOLDER as Placeholder, // 'fsp' | 'representative'
+  /**
+   * CONFIRMED: she advises as a REPRESENTATIVE under Sanlam's FSP licence via
+   * BlueStar, not as an FSP in her own right. Drives the disclosure wording below.
+   */
+  capacity: 'representative' as 'fsp' | 'representative',
 
-  /** FSP licence number of the licensed entity. NEVER invent this. */
+  /**
+   * FSP licence number. Known to be Sanlam's, but approval to display it on this
+   * site is still outstanding. Stays a placeholder until that sign-off exists —
+   * knowing a number is not permission to broadcast it.
+   */
   fspNumber: PLACEHOLDER as Placeholder,
 
   /** Full legal name of the licensed entity she represents. */

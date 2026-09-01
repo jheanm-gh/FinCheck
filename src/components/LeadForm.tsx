@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { readUtm } from '@/lib/utm';
 import { CONSENT_WORDING, LEAD_INTENTS } from '@/lib/leads';
 import { adviser } from '@/config/adviser';
 
@@ -20,7 +21,12 @@ const INTENT_LABELS: Partial<Record<(typeof LEAD_INTENTS)[number], string>> = {
 
 type Status = 'idle' | 'sending' | 'sent' | 'error';
 
-export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; source?: string }) {
+export function LeadForm({
+  checkBand, source = 'site', campaign, intent, onSuccess,
+}: {
+  checkBand?: string; source?: string; campaign?: string;
+  intent?: string; onSuccess?: () => void;
+}) {
   const [status, setStatus] = useState<Status>('idle');
   const [error, setError] = useState<string | null>(null);
 
@@ -35,7 +41,7 @@ export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; s
       surname: String(fd.get('surname') ?? ''),
       email: String(fd.get('email') ?? ''),
       mobile: String(fd.get('mobile') ?? ''),
-      intent: (fd.get('intent') || undefined) as string | undefined,
+      intent: (fd.get('intent') || intent || undefined) as string | undefined,
       preferredContact: String(fd.get('preferredContact') ?? 'email'),
       message: String(fd.get('message') ?? ''),
       contactConsent: fd.get('contactConsent') === 'on',
@@ -43,6 +49,8 @@ export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; s
       website: String(fd.get('website') ?? ''),
       checkBand,
       source,
+      campaign,
+      ...(typeof window !== 'undefined' ? readUtm(window.location.search) : {}),
     };
 
     try {
@@ -58,6 +66,7 @@ export function LeadForm({ checkBand, source = 'site' }: { checkBand?: string; s
         return;
       }
       setStatus('sent');
+      onSuccess?.();
     } catch {
       setError('We could not reach the server. Check your connection and try again.');
       setStatus('error');

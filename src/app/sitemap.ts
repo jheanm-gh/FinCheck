@@ -4,7 +4,7 @@ import { CALCULATORS } from '@/lib/calculators';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const routes = ['', '/check', '/calculators', '/about', '/contact', '/privacy', '/disclaimer'];
+  const routes = ['', '/check', '/calculators', '/learn', '/guides', '/about', '/contact', '/privacy', '/disclaimer'];
   return [
     ...routes.map((r) => ({
       url: `${site.domain}${r}`,

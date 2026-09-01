@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import { adviser, compliance, disclaimers, site } from '@/config/adviser';
-import { complianceText } from '@/lib/compliance';
+import { disclosureSentence } from '@/lib/compliance';
 
 export const metadata: Metadata = { title: 'Disclaimer' };
 
@@ -22,11 +22,7 @@ export default function DisclaimerPage() {
       <p className="mt-4">{disclaimers.noProduct}</p>
 
       <h2 className="mt-12">Licensing</h2>
-      <p className="mt-4">
-        Financial advice is provided by {adviser.name} through{' '}
-        {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')}, FSP{' '}
-        {complianceText(compliance.fspNumber, 'FSP NUMBER')}.
-      </p>
+      <p className="mt-4">{disclosureSentence()}</p>
       <p className="mt-4">{compliance.sanlamEntityLine}</p>
 
       <h2 className="mt-12">No guarantees</h2>

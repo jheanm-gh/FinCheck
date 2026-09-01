@@ -135,10 +135,27 @@ export const disclaimers = {
 } as const;
 
 export const site = {
-  name: 'Climeo',
+  /**
+   * Named after Harika's podcast, so the site, the show and her voice are one brand.
+   *
+   * The domain stays climeo.dev (§2). A brand name that does not match its domain is a
+   * real cost: people cannot guess the URL from the name or the name from the URL.
+   * Accepted deliberately rather than by oversight.
+   */
+  name: 'More Than Just Money',
+
+  /** Wordmark set on two lines. "More Than Just Money" at logo size is too wide. */
+  nameLines: ['More Than', 'Just Money'] as const,
+
+  /**
+   * The podcast's full bilingual title. Her audience is Pretoria and the show is half
+   * Afrikaans, so this is the honest full name even though the site brands in English.
+   */
+  nameFull: 'Meer as net geld / More than just money.',
+
   domain: 'https://climeo.dev',
   tagline: 'Know where you stand.',
   description:
-    'A short, plain-language check of where your finances stand — and a direct line to ' +
+    'A short, plain-language check of where your finances stand, and a direct line to ' +
     `${adviser.name}, ${adviser.role} at ${adviser.practice} in ${adviser.city}.`,
 } as const;

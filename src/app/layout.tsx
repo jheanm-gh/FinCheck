@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Newsreader, Public_Sans } from 'next/font/google';
 import { adviser, site } from '@/config/adviser';
+import { isLaunchReady } from '@/lib/compliance';
 import { SiteHeader } from '@/components/SiteHeader';
 import { SiteFooter } from '@/components/SiteFooter';
 import './globals.css';
@@ -30,12 +31,15 @@ export const metadata: Metadata = {
   },
   twitter: { card: 'summary_large_image', title: `${site.name} — Know where you stand`, description: site.description },
   alternates: { canonical: site.domain },
-  robots: { index: true, follow: true },
+  // Mirrors robots.ts. Not indexable until compliance sign-off exists.
+  robots: isLaunchReady()
+    ? { index: true, follow: true }
+    : { index: false, follow: false, nocache: true },
 };
 
 /**
  * Person schema only. No Organization schema and no aggregateRating:
- * Climeo is not a company and there are no verified reviews to describe.
+ * the site is not a company and there are no verified reviews to describe.
  */
 const personSchema = {
   '@context': 'https://schema.org',

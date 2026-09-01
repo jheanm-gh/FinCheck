@@ -22,6 +22,10 @@ export default function LearnPage() {
       <p className="text-sm text-[var(--color-quill)]">Podcast</p>
       <h1 className="mt-2">{SHOW.title}</h1>
       <p className="measure mt-5 text-lg text-[var(--color-bark)]">{SHOW.description}</p>
+      <p className="measure mt-4 text-[var(--color-bark)]">
+        This site takes its name from the show. Episodes run in both Afrikaans and
+        English.
+      </p>
       <p className="mt-4 text-sm text-[var(--color-quill)]">
         Hosted by {SHOW.host} · {SHOW.category} · {EPISODES.length} episodes shown
       </p>

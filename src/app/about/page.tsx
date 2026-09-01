@@ -1,6 +1,6 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { adviser } from '@/config/adviser';
+import { adviser, site } from '@/config/adviser';
 import { disclosureSentence } from '@/lib/compliance';
 import { SocialLinks } from '@/components/SocialLinks';
 
@@ -27,7 +27,8 @@ export default function AboutPage() {
 
       <h2 className="mt-16">How advice works here</h2>
       <p className="mt-4">
-        Climeo is Harika&rsquo;s own site. It is not operated by Sanlam and it is not
+        {site.name} is Harika&rsquo;s own site, named after her podcast. It is not
+        operated by Sanlam and it is not
         Sanlam&rsquo;s corporate website. The tools here are educational: they help you
         work out what to ask, and nothing on this site is a recommendation.
       </p>

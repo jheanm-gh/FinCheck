@@ -52,8 +52,8 @@ export function SiteFooter() {
       <div className="wrap border-t py-8">
         <p className="legal measure">
           {site.name} is the personal website of {adviser.name}, {adviser.role} at{' '}
-          {adviser.practice}. It is not operated by Sanlam and is not Sanlam&rsquo;s
-          corporate website.
+          {adviser.practice}, and shares its name with her podcast. It is not operated by
+          Sanlam and is not Sanlam&rsquo;s corporate website.
         </p>
         <p className="legal measure mt-3">
           {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')} · FSP{' '}

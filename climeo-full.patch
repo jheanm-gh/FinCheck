@@ -15,10 +15,24 @@ index b91f20d..1d3d568 100644
 +SUPABASE_URL=
 +SUPABASE_SERVICE_ROLE_KEY=
 diff --git a/README.md b/README.md
-index e7c2505..5276170 100644
+index e7c2505..dfb47fa 100644
 --- a/README.md
 +++ b/README.md
-@@ -73,8 +73,26 @@ Default `log` needs no credentials. See `.env.example`.
+@@ -1,8 +1,12 @@
+-# Climeo
++# More Than Just Money
+ 
+ Financial health check and lead generation for **Harika van der Merwe**, Sanlam Financial
+ Adviser at Concept Wealth Hennopspark, Pretoria.
+ 
++Named after her podcast, *Meer as net geld / More than just money.*, so the site and the
++show are one brand. The domain remains `climeo.dev` per the original brief — the brand
++name and the URL deliberately do not match, which is a real cost and an accepted one.
++
+ Next.js 16 · TypeScript · Tailwind 4 · Zod · Vitest. Deploys to `climeo.dev` on Vercel.
+ 
+ ## Not cleared for launch
+@@ -73,8 +77,26 @@ Default `log` needs no credentials. See `.env.example`.
  
  Nothing writes to a database yet, deliberately, pending the POPIA question above.
  
@@ -49,7 +63,7 @@ index e7c2505..5276170 100644
 +and Afrikaans localisation. The podcast is bilingual and the site is English-only — for
 +a Pretoria practice that is a real gap, not a nice-to-have.
 diff --git a/src/app/about/page.tsx b/src/app/about/page.tsx
-index b9973f0..bfa0fff 100644
+index b9973f0..0b8f5fc 100644
 --- a/src/app/about/page.tsx
 +++ b/src/app/about/page.tsx
 @@ -1,7 +1,8 @@
@@ -57,13 +71,19 @@ index b9973f0..bfa0fff 100644
  import Link from 'next/link';
 -import { adviser, compliance } from '@/config/adviser';
 -import { complianceText } from '@/lib/compliance';
-+import { adviser } from '@/config/adviser';
++import { adviser, site } from '@/config/adviser';
 +import { disclosureSentence } from '@/lib/compliance';
 +import { SocialLinks } from '@/components/SocialLinks';
  
  export const metadata: Metadata = {
    title: 'About Harika',
-@@ -30,14 +31,19 @@ export default function AboutPage() {
+@@ -26,18 +27,24 @@ export default function AboutPage() {
+ 
+       <h2 className="mt-16">How advice works here</h2>
+       <p className="mt-4">
+-        Climeo is Harika&rsquo;s own site. It is not operated by Sanlam and it is not
++        {site.name} is Harika&rsquo;s own site, named after her podcast. It is not
++        operated by Sanlam and it is not
          Sanlam&rsquo;s corporate website. The tools here are educational: they help you
          work out what to ask, and nothing on this site is a recommendation.
        </p>
@@ -404,12 +424,25 @@ index 0000000..bc70f3b
 +    </div>
 +  );
 +}
+diff --git a/src/app/layout.tsx b/src/app/layout.tsx
+index bf981de..7164eb5 100644
+--- a/src/app/layout.tsx
++++ b/src/app/layout.tsx
+@@ -35,7 +35,7 @@ export const metadata: Metadata = {
+ 
+ /**
+  * Person schema only. No Organization schema and no aggregateRating:
+- * Climeo is not a company and there are no verified reviews to describe.
++ * the site is not a company and there are no verified reviews to describe.
+  */
+ const personSchema = {
+   '@context': 'https://schema.org',
 diff --git a/src/app/learn/page.tsx b/src/app/learn/page.tsx
 new file mode 100644
-index 0000000..db13989
+index 0000000..921badc
 --- /dev/null
 +++ b/src/app/learn/page.tsx
-@@ -0,0 +1,80 @@
+@@ -0,0 +1,84 @@
 +import type { Metadata } from 'next';
 +import Link from 'next/link';
 +import { SHOW, EPISODES, episodeUrl, CALCULATOR_FOR_PILLAR } from '@/content/podcast';
@@ -434,6 +467,10 @@ index 0000000..db13989
 +      <p className="text-sm text-[var(--color-quill)]">Podcast</p>
 +      <h1 className="mt-2">{SHOW.title}</h1>
 +      <p className="measure mt-5 text-lg text-[var(--color-bark)]">{SHOW.description}</p>
++      <p className="measure mt-4 text-[var(--color-bark)]">
++        This site takes its name from the show. Episodes run in both Afrikaans and
++        English.
++      </p>
 +      <p className="mt-4 text-sm text-[var(--color-quill)]">
 +        Hosted by {SHOW.host} · {SHOW.category} · {EPISODES.length} episodes shown
 +      </p>
@@ -490,6 +527,37 @@ index 0000000..db13989
 +    </div>
 +  );
 +}
+diff --git a/src/app/page.tsx b/src/app/page.tsx
+index 60fb0bd..610ff3c 100644
+--- a/src/app/page.tsx
++++ b/src/app/page.tsx
+@@ -1,5 +1,5 @@
+ import Link from 'next/link';
+-import { adviser, disclaimers } from '@/config/adviser';
++import { adviser, disclaimers, site } from '@/config/adviser';
+ import { PILLARS, QUESTIONS } from '@/lib/check';
+ import { CALCULATORS } from '@/lib/calculators';
+ import { HeroQuestion } from '@/components/HeroQuestion';
+@@ -37,8 +37,8 @@ export default function Home() {
+                 next step with confidence.
+               </p>
+               <p className="measure mt-5">
+-                Climeo is a simple place to check your financial health and connect with{' '}
+-                {adviser.name} when you want personalised advice.
++                {site.name} is a simple place to check your financial health and connect
++                with {adviser.name} when you want personalised advice.
+               </p>
+               <div className="mt-8 flex flex-wrap gap-3">
+                 <Link href="/check" className="btn btn-primary">Take the financial health check</Link>
+@@ -133,7 +133,7 @@ export default function Home() {
+             </p>
+             <p className="measure mt-4 text-[var(--color-bark)]">
+               Advice on this site comes through her, under the licensing and oversight of
+-              her practice. Climeo itself is a place to get oriented before that
++              her practice. This site is a place to get oriented before that
+               conversation, not a substitute for it.
+             </p>
+             <Link href="/about" className="btn btn-secondary mt-7">More about Harika</Link>
 diff --git a/src/app/robots.ts b/src/app/robots.ts
 index 6e11211..b1b64a8 100644
 --- a/src/app/robots.ts
@@ -706,7 +774,7 @@ index 0a3a941..68e88f9 100644
        setError('We could not reach the server. Check your connection and try again.');
        setStatus('error');
 diff --git a/src/components/SiteFooter.tsx b/src/components/SiteFooter.tsx
-index 9a0ef41..50490e3 100644
+index 9a0ef41..db32e5f 100644
 --- a/src/components/SiteFooter.tsx
 +++ b/src/components/SiteFooter.tsx
 @@ -1,6 +1,7 @@
@@ -735,8 +803,19 @@ index 9a0ef41..50490e3 100644
          </nav>
  
          <nav aria-label="Legal">
+@@ -50,8 +52,8 @@ export function SiteFooter() {
+       <div className="wrap border-t py-8">
+         <p className="legal measure">
+           {site.name} is the personal website of {adviser.name}, {adviser.role} at{' '}
+-          {adviser.practice}. It is not operated by Sanlam and is not Sanlam&rsquo;s
+-          corporate website.
++          {adviser.practice}, and shares its name with her podcast. It is not operated by
++          Sanlam and is not Sanlam&rsquo;s corporate website.
+         </p>
+         <p className="legal measure mt-3">
+           {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')} · FSP{' '}
 diff --git a/src/components/SiteHeader.tsx b/src/components/SiteHeader.tsx
-index ebad756..9dd4397 100644
+index ebad756..0dda9f7 100644
 --- a/src/components/SiteHeader.tsx
 +++ b/src/components/SiteHeader.tsx
 @@ -4,6 +4,7 @@ import { adviser, site } from '@/config/adviser';
@@ -747,6 +826,23 @@ index ebad756..9dd4397 100644
    { href: '/about', label: 'About Harika' },
    { href: '/contact', label: 'Contact' },
  ];
+@@ -12,8 +13,14 @@ export function SiteHeader() {
+   return (
+     <header className="border-b bg-[var(--color-mist)]">
+       <div className="wrap flex flex-wrap items-center gap-x-8 gap-y-3 py-4">
+-        <Link href="/" className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight">
+-          {site.name}
++        <Link
++          href="/"
++          aria-label={`${site.name} — home`}
++          className="font-[family-name:var(--font-display)] text-[1.0625rem] font-semibold leading-[1.05] tracking-tight"
++        >
++          {site.nameLines.map((line) => (
++            <span key={line} className="block">{line}</span>
++          ))}
+         </Link>
+         <p className="order-3 w-full text-sm text-[var(--color-quill)] sm:order-2 sm:w-auto sm:border-l sm:pl-8">
+           {adviser.name} · {adviser.role}
 diff --git a/src/components/SocialLinks.tsx b/src/components/SocialLinks.tsx
 new file mode 100644
 index 0000000..317f190
@@ -791,7 +887,7 @@ index 0000000..317f190
 +  );
 +}
 diff --git a/src/config/adviser.ts b/src/config/adviser.ts
-index 2fc4191..05dc76e 100644
+index 2fc4191..d4d0e46 100644
 --- a/src/config/adviser.ts
 +++ b/src/config/adviser.ts
 @@ -32,13 +32,8 @@ export const adviser = {
@@ -849,6 +945,36 @@ index 2fc4191..05dc76e 100644
    fspNumber: PLACEHOLDER as Placeholder,
  
    /** Full legal name of the licensed entity she represents. */
+@@ -124,10 +135,27 @@ export const disclaimers = {
+ } as const;
+ 
+ export const site = {
+-  name: 'Climeo',
++  /**
++   * Named after Harika's podcast, so the site, the show and her voice are one brand.
++   *
++   * The domain stays climeo.dev (§2). A brand name that does not match its domain is a
++   * real cost: people cannot guess the URL from the name or the name from the URL.
++   * Accepted deliberately rather than by oversight.
++   */
++  name: 'More Than Just Money',
++
++  /** Wordmark set on two lines. "More Than Just Money" at logo size is too wide. */
++  nameLines: ['More Than', 'Just Money'] as const,
++
++  /**
++   * The podcast's full bilingual title. Her audience is Pretoria and the show is half
++   * Afrikaans, so this is the honest full name even though the site brands in English.
++   */
++  nameFull: 'Meer as net geld / More than just money.',
++
+   domain: 'https://climeo.dev',
+   tagline: 'Know where you stand.',
+   description:
+-    'A short, plain-language check of where your finances stand — and a direct line to ' +
++    'A short, plain-language check of where your finances stand, and a direct line to ' +
+     `${adviser.name}, ${adviser.role} at ${adviser.practice} in ${adviser.city}.`,
+ } as const;
 diff --git a/src/content/campaigns.ts b/src/content/campaigns.ts
 new file mode 100644
 index 0000000..c71d8c0
@@ -1683,6 +1809,19 @@ index e293153..02d0f01 100644
    if (isPlaceholder(compliance.licensedEntity)) missing.push('Licensed entity legal name');
    if (isPlaceholder(compliance.responsibleParty)) missing.push('POPIA responsible party');
    if (isPlaceholder(compliance.informationOfficer)) missing.push('POPIA Information Officer');
+diff --git a/src/lib/delivery.ts b/src/lib/delivery.ts
+index cc3057e..b85f480 100644
+--- a/src/lib/delivery.ts
++++ b/src/lib/delivery.ts
+@@ -27,7 +27,7 @@ export async function deliverLead(lead: StoredLead): Promise<void> {
+       method: 'POST',
+       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
+       body: JSON.stringify({
+-        from: process.env.LEAD_FROM_EMAIL ?? 'Climeo <onboarding@resend.dev>',
++        from: process.env.LEAD_FROM_EMAIL ?? 'More Than Just Money <onboarding@resend.dev>',
+         to: [to],
+         subject: `New enquiry — ${lead.firstName} ${lead.surname ?? ''}`.trim(),
+         text: formatLead(lead),
 diff --git a/src/lib/leads-store.ts b/src/lib/leads-store.ts
 new file mode 100644
 index 0000000..683c516

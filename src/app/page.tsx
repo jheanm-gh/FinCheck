@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { adviser, disclaimers } from '@/config/adviser';
+import { adviser, disclaimers, site } from '@/config/adviser';
 import { PILLARS, QUESTIONS } from '@/lib/check';
 import { CALCULATORS } from '@/lib/calculators';
 import { HeroQuestion } from '@/components/HeroQuestion';
@@ -37,8 +37,8 @@ export default function Home() {
                 next step with confidence.
               </p>
               <p className="measure mt-5">
-                Climeo is a simple place to check your financial health and connect with{' '}
-                {adviser.name} when you want personalised advice.
+                {site.name} is a simple place to check your financial health and connect
+                with {adviser.name} when you want personalised advice.
               </p>
               <div className="mt-8 flex flex-wrap gap-3">
                 <Link href="/check" className="btn btn-primary">Take the financial health check</Link>
@@ -133,7 +133,7 @@ export default function Home() {
             </p>
             <p className="measure mt-4 text-[var(--color-bark)]">
               Advice on this site comes through her, under the licensing and oversight of
-              her practice. Climeo itself is a place to get oriented before that
+              her practice. This site is a place to get oriented before that
               conversation, not a substitute for it.
             </p>
             <Link href="/about" className="btn btn-secondary mt-7">More about Harika</Link>

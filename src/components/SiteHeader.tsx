@@ -13,8 +13,14 @@ export function SiteHeader() {
   return (
     <header className="border-b bg-[var(--color-mist)]">
       <div className="wrap flex flex-wrap items-center gap-x-8 gap-y-3 py-4">
-        <Link href="/" className="font-[family-name:var(--font-display)] text-xl font-semibold tracking-tight">
-          {site.name}
+        <Link
+          href="/"
+          aria-label={`${site.name} — home`}
+          className="font-[family-name:var(--font-display)] text-[1.0625rem] font-semibold leading-[1.05] tracking-tight"
+        >
+          {site.nameLines.map((line) => (
+            <span key={line} className="block">{line}</span>
+          ))}
         </Link>
         <p className="order-3 w-full text-sm text-[var(--color-quill)] sm:order-2 sm:w-auto sm:border-l sm:pl-8">
           {adviser.name} · {adviser.role}

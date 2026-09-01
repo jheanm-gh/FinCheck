@@ -27,7 +27,7 @@ export async function deliverLead(lead: StoredLead): Promise<void> {
       method: 'POST',
       headers: { Authorization: `Bearer ${key}`, 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        from: process.env.LEAD_FROM_EMAIL ?? 'Climeo <onboarding@resend.dev>',
+        from: process.env.LEAD_FROM_EMAIL ?? 'More Than Just Money <onboarding@resend.dev>',
         to: [to],
         subject: `New enquiry — ${lead.firstName} ${lead.surname ?? ''}`.trim(),
         text: formatLead(lead),

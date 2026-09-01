@@ -1,7 +1,11 @@
-# Climeo
+# More Than Just Money
 
 Financial health check and lead generation for **Harika van der Merwe**, Sanlam Financial
 Adviser at Concept Wealth Hennopspark, Pretoria.
+
+Named after her podcast, *Meer as net geld / More than just money.*, so the site and the
+show are one brand. The domain remains `climeo.dev` per the original brief — the brand
+name and the URL deliberately do not match, which is a real cost and an accepted one.
 
 Next.js 16 · TypeScript · Tailwind 4 · Zod · Vitest. Deploys to `climeo.dev` on Vercel.
 

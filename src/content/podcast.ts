@@ -3,8 +3,8 @@
  *
  * §21 asked for ten written articles. Harika already publishes a podcast, so
  * commissioning AI-written finance articles under her name would duplicate both her
- * own content and Sanlam's blog (§48), and would put unreviewed financial content
- * on a site advertising a licensed representative.
+ * own content and would put unreviewed financial content on a site connected to a
+ * licensed representative.
  *
  * So this section surfaces her real episodes instead.
  *

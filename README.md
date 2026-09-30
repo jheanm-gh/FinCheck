@@ -1,7 +1,6 @@
 # More Than Just Money
 
-Financial health check and lead generation for **Harika van der Merwe**, Sanlam Financial
-Adviser at Concept Wealth Hennopspark, Pretoria.
+Plain-language financial information from **Harika van der Merwe**, Pretoria.
 
 Named after her podcast, *Meer as net geld / More than just money.*, so the site and the
 show are one brand. The domain remains `climeo.dev` per the original brief — the brand
@@ -9,23 +8,19 @@ name and the URL deliberately do not match, which is a real cost and an accepted
 
 Next.js 16 · TypeScript · Tailwind 4 · Zod · Vitest. Deploys to `climeo.dev` on Vercel.
 
-## Not cleared for launch
+## Positioning — read before changing anything
 
-This site must not accept real submissions until the items in `src/config/adviser.ts`
-are resolved. They render as a visible red block in the footer until then.
+This site is an **information resource**, not financial services advertising. That is
+what resolves the FAIS question: nothing here advertises or recommends a financial
+service, so no FSP disclosure is required, so the institution need not be named.
 
-The blocking question is **not** the FSP number. Harika appears on a Sanlam BlueStar
-practice site, which normally means she advises as a *representative under Sanlam's FSP
-licence* rather than as an FSP in her own right. If so:
+The position has to stay true in substance. See the header comment in
+`src/config/adviser.ts` for what keeps it true. Reintroducing product framing,
+audience targeting or need-based qualification breaks it.
 
-- The FAIS General Code requires a key individual to approve advertising before
-  publication, and the FSP to keep a record of it. This site is advertising.
-- Tied and BlueStar advisers are usually restricted by contract from running
-  independently branded client-facing sites with their own lead capture.
-- POPIA needs a named responsible party for data collected here. That is a legal
-  entity, and it has not been established which one.
+Remaining blockers are POPIA only: responsible party and Information Officer.
+Both render as a visible block in the footer until supplied.
 
-Confirm all three with Concept Wealth's key individual before going further.
 
 ## Commands
 
@@ -53,8 +48,7 @@ src/lib/delivery.ts      swappable lead destination
 
 ## Design decisions
 
-**The check asks no figures.** Sanlam already gives Harika a Financial Check that
-collects numbers. Duplicating it would be worse, and would put household financial data
+**The check asks no figures.** Figure-based checks already exist elsewhere. Duplicating it would be worse, and would put household financial data
 in a database we cannot yet name a responsible party for. Twelve recognition questions
 instead: no rands, no ID number, no balances.
 
@@ -81,8 +75,8 @@ Nothing writes to a database yet, deliberately, pending the POPIA question above
 
 **The education centre is her podcast, not articles.** §21 asked for ten written
 articles. Harika already publishes *Meer as net geld / More than just money.* Writing
-finance articles under her name would duplicate her own content and Sanlam's blog, and
-would put unreviewed financial content on a site advertising a licensed representative.
+finance articles under her name would duplicate her own content and would put
+unreviewed financial content on a site connected to a licensed representative.
 `src/content/podcast.ts` carries real titles, dates and durations only — no invented
 episode summaries. The `pillar` mappings are editorial guesses from titles and need
 her correction.

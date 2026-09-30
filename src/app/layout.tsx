@@ -16,7 +16,7 @@ const publicSans = Public_Sans({
 export const metadata: Metadata = {
   metadataBase: new URL(site.domain),
   title: {
-    default: `${site.name} — Financial health check | ${adviser.name}, ${adviser.role}`,
+    default: `${site.name} — ${adviser.name}`,
     template: `%s | ${site.name}`,
   },
   description: site.description,
@@ -45,8 +45,6 @@ const personSchema = {
   '@context': 'https://schema.org',
   '@type': 'Person',
   name: adviser.name,
-  jobTitle: adviser.role,
-  worksFor: { '@type': 'Organization', name: adviser.practice },
   address: {
     '@type': 'PostalAddress',
     addressLocality: adviser.city,
@@ -56,7 +54,7 @@ const personSchema = {
   telephone: adviser.phoneE164,
   email: adviser.email,
   url: site.domain,
-  sameAs: [adviser.links.sanlamProfile, adviser.links.linkedin],
+  sameAs: [adviser.links.linkedin, adviser.links.facebook, adviser.links.podcast, adviser.links.practice],
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -14,9 +14,9 @@ describe('launch gate', () => {
     expect(r.sitemap).toBeUndefined();
   });
 
-  it('still lists the FSP approval as outstanding', () => {
-    expect(outstandingComplianceItems()).toContain(
-      'FAIS advertising approval by a key individual',
-    );
+  it('no longer lists any FAIS item, since the site advertises no financial service', () => {
+    const joined = outstandingComplianceItems().join(' ');
+    expect(joined).not.toMatch(/FAIS/);
+    expect(joined).not.toMatch(/FSP/);
   });
 });

@@ -3,6 +3,7 @@ import { adviser, disclaimers, site } from '@/config/adviser';
 import { PILLARS, QUESTIONS } from '@/lib/check';
 import { CALCULATORS } from '@/lib/calculators';
 import { HeroQuestion } from '@/components/HeroQuestion';
+import { SocialLinks } from '@/components/SocialLinks';
 
 const CONCERNS = [
   { label: 'Protect my family', href: '/check' },
@@ -129,37 +130,21 @@ export default function Home() {
           <div>
             <h2>Why Harika</h2>
             <p className="measure mt-5 text-lg">
-              {adviser.name} is a {adviser.role} at {adviser.practice} in {adviser.city}.
+              {adviser.name} writes and podcasts about money in plain language.
             </p>
             <p className="measure mt-4 text-[var(--color-bark)]">
-              Advice on this site comes through her, under the licensing and oversight of
-              her practice. This site is a place to get oriented before that
-              conversation, not a substitute for it.
+              This site explains things. It does not advise, sell or recommend.
             </p>
             <Link href="/about" className="btn btn-secondary mt-7">More about Harika</Link>
           </div>
 
           <div className="surface p-7">
-            <h3>Official profiles</h3>
-            <ul className="mt-5 space-y-4 text-sm">
-              <li>
-                <a href={adviser.links.sanlamProfile} className="font-medium underline" rel="noopener">
-                  Harika on Sanlam
-                </a>
-                <p className="mt-1 text-[var(--color-quill)]">Her verified adviser profile.</p>
-              </li>
-              <li>
-                <a href={adviser.links.conceptWealth} className="font-medium underline" rel="noopener">
-                  Concept Wealth Hennopspark
-                </a>
-                <p className="mt-1 text-[var(--color-quill)]">The practice she works through.</p>
-              </li>
-              <li>
-                <a href={adviser.links.linkedin} className="font-medium underline" rel="noopener">
-                  Harika on LinkedIn
-                </a>
-              </li>
-            </ul>
+            <h3>Where to find her</h3>
+            <p className="mt-3 text-sm text-[var(--color-bark)]">
+              She publishes a podcast in Afrikaans and English, and posts regularly.
+            </p>
+            <SocialLinks className="mt-6" />
+            <p className="legal mt-6">{disclaimers.noService}</p>
           </div>
         </div>
       </section>

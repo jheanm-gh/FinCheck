@@ -1,6 +1,5 @@
 import type { Metadata } from 'next';
 import { adviser, compliance, disclaimers, site } from '@/config/adviser';
-import { disclosureSentence } from '@/lib/compliance';
 
 export const metadata: Metadata = { title: 'Disclaimer' };
 
@@ -11,10 +10,10 @@ export default function DisclaimerPage() {
 
       <h2 className="mt-12">What this site is</h2>
       <p className="mt-4">
-        {site.name} is the personal website of {adviser.name}, {adviser.role} at{' '}
-        {adviser.practice}. It is not operated by, owned by, or endorsed by Sanlam, and it
-        is not Sanlam&rsquo;s corporate website.
+        {site.name} is the personal website of {adviser.name}.
       </p>
+      <p className="mt-4">{disclaimers.noService}</p>
+      <p className="mt-4">{disclaimers.independence}</p>
 
       <h2 className="mt-12">The tools are not advice</h2>
       <p className="mt-4">{disclaimers.check}</p>
@@ -22,8 +21,6 @@ export default function DisclaimerPage() {
       <p className="mt-4">{disclaimers.noProduct}</p>
 
       <h2 className="mt-12">Licensing</h2>
-      <p className="mt-4">{disclosureSentence()}</p>
-      <p className="mt-4">{compliance.sanlamEntityLine}</p>
 
       <h2 className="mt-12">No guarantees</h2>
       <p className="mt-4">

@@ -1,6 +1,4 @@
-import { adviser, compliance, PLACEHOLDER, type Placeholder } from '@/config/adviser';
-
-const adviserName = adviser.name;
+import { compliance, PLACEHOLDER, type Placeholder } from '@/config/adviser';
 
 export function isPlaceholder(v: unknown): v is Placeholder {
   return v === PLACEHOLDER;
@@ -8,34 +6,24 @@ export function isPlaceholder(v: unknown): v is Placeholder {
 
 /**
  * Renders a compliance value, or a loud visible marker if it has not been supplied.
- *
- * Deliberately NOT silent. A missing FSP number that renders as an empty string is
- * how a site ships with a regulatory gap nobody noticed.
+ * Deliberately not silent: a missing value that renders as an empty string is how a
+ * site ships with a gap nobody noticed.
  */
 export function complianceText(v: unknown, label: string): string {
   return isPlaceholder(v) ? `[${label} — PENDING COMPLIANCE INPUT]` : String(v);
 }
 
 /**
- * Disclosure sentence, phrased for the confirmed capacity.
- * A representative and an FSP require materially different wording.
+ * What still blocks launch.
+ *
+ * The FAIS disclosure items are gone: under the information-only position no financial
+ * service is advertised, so no FSP disclosure is required. What remains is POPIA,
+ * which applies to anyone collecting personal information regardless of positioning.
  */
-export function disclosureSentence(): string {
-  const entity = complianceText(compliance.licensedEntity, 'LICENSED ENTITY');
-  const fsp = complianceText(compliance.fspNumber, 'FSP NUMBER');
-  return compliance.capacity === 'representative'
-    ? `${adviserName} provides financial advice as an appointed representative of ${entity}, FSP ${fsp}. She does not hold a financial services licence in her own name.`
-    : `${adviserName} provides financial advice through ${entity}, FSP ${fsp}.`;
-}
-
-/** Everything still outstanding before this site may lawfully go live. */
 export function outstandingComplianceItems(): string[] {
   const missing: string[] = [];
-  if (isPlaceholder(compliance.fspNumber)) missing.push('Approval to display the FSP licence number');
-  if (isPlaceholder(compliance.licensedEntity)) missing.push('Licensed entity legal name');
   if (isPlaceholder(compliance.responsibleParty)) missing.push('POPIA responsible party');
   if (isPlaceholder(compliance.informationOfficer)) missing.push('POPIA Information Officer');
-  if (!compliance.advertisingApproved) missing.push('FAIS advertising approval by a key individual');
   return missing;
 }
 

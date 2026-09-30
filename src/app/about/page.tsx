@@ -1,12 +1,11 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { adviser, site } from '@/config/adviser';
-import { disclosureSentence } from '@/lib/compliance';
+import { adviser, disclaimers, site } from '@/config/adviser';
 import { SocialLinks } from '@/components/SocialLinks';
 
 export const metadata: Metadata = {
   title: 'About Harika',
-  description: `${adviser.name} is a ${adviser.role} at ${adviser.practice} in ${adviser.city}.`,
+  description: `About ${adviser.name} and the podcast this site is named after.`,
 };
 
 export default function AboutPage() {
@@ -21,21 +20,17 @@ export default function AboutPage() {
       <blockquote className="mt-10 border-l-2 border-[var(--color-band-3)] pl-6 font-[family-name:var(--font-display)] text-2xl leading-snug">
         {adviser.positioning}
       </blockquote>
-      <p className="legal mt-3">
-        From her <a href={adviser.links.sanlamProfile} className="underline" rel="noopener">official Sanlam adviser profile</a>.
-      </p>
 
-      <h2 className="mt-16">How advice works here</h2>
+      <h2 className="mt-16">What this site is</h2>
+      <p className="mt-4">{disclaimers.noService}</p>
+      <p className="mt-4">{disclaimers.independence}</p>
       <p className="mt-4">
-        {site.name} is Harika&rsquo;s own site, named after her podcast. It is not
-        operated by Sanlam and it is not
-        Sanlam&rsquo;s corporate website. The tools here are educational: they help you
-        work out what to ask, and nothing on this site is a recommendation.
-      </p>
-      <p className="mt-4">{disclosureSentence()}</p>
-      <p className="mt-4">
-        Before any advice is given you should receive a disclosure letter setting out what
-        she may advise on, which product suppliers she represents, and how she is paid.
+        Professionally, Harika is a {adviser.role} at{' '}
+        <a href={adviser.links.practice} className="underline" target="_blank" rel="noopener noreferrer">
+          {adviser.practice}
+        </a>{' '}
+        in {adviser.city}. That work is separate from this site. Anything arranged
+        through her practice follows its own process, with its own disclosures.
       </p>
 
       <h2 className="mt-16">Follow Harika</h2>

@@ -1,123 +1,116 @@
 /**
- * SINGLE SOURCE OF TRUTH for adviser identity, contact and compliance wording.
+ * SINGLE SOURCE OF TRUTH for identity, contact and compliance wording.
  *
- * Every value is marked with its provenance:
- *   VERIFIED    - taken from Harika's official Sanlam adviser profile (see sourceUrl)
- *   PLACEHOLDER - MUST be supplied/approved by Concept Wealth or Sanlam compliance
- *                 before this site goes live. Nothing here is invented.
+ * ── POSITIONING ───────────────────────────────────────────────────────────
+ * This site is an INFORMATION RESOURCE, not financial services advertising.
  *
- * Fabricating FSP numbers, licence wording, qualifications or approvals is not
- * acceptable. Placeholders render visibly in non-production builds so they cannot
- * be shipped by accident (see src/lib/compliance.ts).
+ * That is a deliberate position, and it is what resolves the FAIS conflict that
+ * previously blocked launch: no financial service is advertised here, so no FSP
+ * disclosure is required, so the institution need not be named.
+ *
+ * The position has to stay true in substance, not just in wording. What keeps it true:
+ *   - No product or product category is named, recommended or implied anywhere.
+ *   - The health check collects no figures and outputs bands, never scores or targets.
+ *   - Calculators show their assumptions and map to no product.
+ *   - Topic pages explain an area; they do not target an audience or capture on-page.
+ *   - The contact form is a general enquiry, not a qualification by product need.
+ *   - Harika's professional role appears as biographical fact on /about only. It is
+ *     not used as site positioning — not in navigation, page titles, metadata or the
+ *     homepage hero.
+ *
+ * Anything that reintroduces product framing or need-based qualification breaks the
+ * position and puts the FAIS question back on the table.
+ *
+ * ── INSTITUTIONAL SEPARATION ──────────────────────────────────────────────
+ * The key individual approved an independent site on condition that all mention of
+ * and links to Sanlam be removed. Concept Wealth's name and links were subsequently
+ * confirmed as permitted.
  */
 
 export const PLACEHOLDER = Symbol('needs-compliance-input');
 export type Placeholder = typeof PLACEHOLDER;
 
 export const adviser = {
-  // ---- VERIFIED: identity -------------------------------------------------
   name: 'Harika van der Merwe',
-  role: 'Sanlam Financial Adviser',
+
+  /**
+   * Biographical, used on /about only. Was 'Sanlam Financial Adviser'.
+   * Deliberately NOT used in nav, titles, metadata or the hero — stating a profession
+   * is fact; leading with it is positioning.
+   */
+  role: 'Financial Adviser',
+
+  /** Permitted by the KI. Sanlam is not. */
   practice: 'Concept Wealth Hennopspark',
+
   city: 'Pretoria',
   province: 'Gauteng',
   country: 'South Africa',
 
-  /** VERIFIED: her own words from the official profile. Used once, on /about. */
+  /** Her own words. The citation to the institution-hosted source has been removed. */
   positioning:
     'I am dedicated to helping businesses and individuals build long term financial ' +
     'confidence through tailor made wealth planning, risk management and investment strategies.',
 
-  // ---- VERIFIED: contact --------------------------------------------------
   phoneDisplay: '083 331 6235',
   phoneE164: '+27833316235',
   whatsapp: 'https://wa.me/27833316235',
-  /** CONFIRMED by the practice: .co.za, not the .com shown on the Sanlam profile. */
   email: 'harika.vandermerwe@conceptwealth.co.za',
-  practiceEmail: 'jdhenry@conceptwealth.co.za',
-  practiceAddress:
-    'Sanlynn Building, Cnr Sanlam & Alkantrand Road, Lynnwood Manor, Pretoria, 0081',
 
-  // ---- VERIFIED: official links -------------------------------------------
+  /**
+   * INTENTIONALLY OMITTED, not pending. The practice link carries visitors to it, and
+   * the address on file reads "Cnr Sanlam & Alkantrand Road" — the street name alone
+   * would put the word on the site.
+   */
+  practiceAddress: null,
+
+  /**
+   * Her own channels plus the practice's own domain.
+   * The practice profile hosted on sanlamadvice.co.za is a Sanlam URL and stays out.
+   */
   links: {
-    sanlamProfile:
-      'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark/adviser/harika-van-der-merwe/88842552158368',
-    conceptWealth: 'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark',
     linkedin: 'https://www.linkedin.com/in/harika-van-der-merwe-a46690254',
-
-    /**
-     * A Facebook /share/ redirect, not her canonical page URL. It resolves today but
-     * these are not guaranteed stable — replace with the real page URL when you have it.
-     */
     facebook: 'https://www.facebook.com/share/1EZwKsmDHm/',
-
-    /** Her podcast. Genuine owned content, not a third-party resource. */
     podcast: 'https://open.spotify.com/show/033OI8ClChie4avziJnMMY',
-    sanlamPrivacy: 'https://www.sanlam.com/sanlams-privacy-policy.php',
-    sanlamTerms: 'https://www.sanlam.com/terms-of-use.php',
+    practice: 'https://www.conceptwealth.co.za',
   },
 
   /**
-   * VERIFIED: hosted on Sanlam's CDN. Do NOT hotlink in production without
-   * permission — download, get sign-off, and serve from /public instead.
+   * Local path. Put the file at public/harika.jpg and set photoApproved to true.
+   * Do NOT take it from LinkedIn: their terms prohibit automated retrieval and a
+   * profile photo is often the photographer's copyright, not the subject's.
+   * Until approved, /about renders a designed placeholder rather than a broken image.
    */
-  photoUrl: 'https://www.sanlamadvice.co.za/intermediary-images/8693',
+  photoUrl: '/harika.jpg',
   photoApproved: false,
-
-  sourceUrl:
-    'https://www.sanlamadvice.co.za/bluestar/conceptwealth-hennopspark/adviser/harika-van-der-merwe/88842552158368',
 } as const;
 
-/**
- * COMPLIANCE BLOCK — every value here is a placeholder.
- *
- * Harika appears on a Sanlam BlueStar practice site, which normally means she acts
- * as a REPRESENTATIVE under Sanlam's FSP licence rather than as an FSP in her own
- * right. That distinction changes the required disclosure wording materially, so it
- * must be confirmed rather than guessed.
- */
 export const compliance = {
   /**
-   * CONFIRMED: she advises as a REPRESENTATIVE under Sanlam's FSP licence via
-   * BlueStar, not as an FSP in her own right. Drives the disclosure wording below.
+   * Retained for accuracy, but no FSP disclosure is rendered anywhere on the site:
+   * under the information-only position none is required. If the site is ever
+   * repositioned to advertise advice, the disclosure becomes mandatory and the
+   * institution would have to be named — see openQuestions.
    */
   capacity: 'representative' as 'fsp' | 'representative',
 
-  /**
-   * FSP licence number. Known to be Sanlam's, but approval to display it on this
-   * site is still outstanding. Stays a placeholder until that sign-off exists —
-   * knowing a number is not permission to broadcast it.
-   */
-  fspNumber: PLACEHOLDER as Placeholder,
-
-  /** Full legal name of the licensed entity she represents. */
-  licensedEntity: PLACEHOLDER as Placeholder,
-
-  /** POPIA responsible party — the legal entity accountable for data collected here. */
+  /** POPIA. Still required before any real submission is accepted. */
   responsibleParty: PLACEHOLDER as Placeholder,
-
-  /** POPIA Information Officer name + contact, as registered with the Regulator. */
   informationOfficer: PLACEHOLDER as Placeholder,
-
-  /**
-   * Product-supplier disclosure required by the FAIS General Code.
-   * Sanlam's own footer line, reproduced verbatim from the official profile, is the
-   * closest verified wording available. It describes Sanlam Life, NOT this website,
-   * so it cannot stand alone as this site's disclosure.
-   */
-  sanlamEntityLine:
-    'Sanlam Life Insurance Limited is a licensed Life Insurer, authorised Financial ' +
-    'Services Provider and registered Credit Provider (NCRCP43).',
-
-  /**
-   * Did a Sanlam/Concept Wealth key individual approve this site as advertising?
-   * The FAIS General Code requires pre-publication approval and a retained record.
-   * Ship-blocking: leave false until written approval exists.
-   */
-  advertisingApproved: false,
 } as const;
 
-/** Non-negotiable wording shown on every tool output. Safe to ship as-is. */
+export const openQuestions = [
+  'CONFIRM: does compliance accept the information-only position? Nothing on the ' +
+    'site advertises or recommends a financial product or service, so no FAIS ' +
+    'disclosure is rendered. Worth a written confirmation even though the KI has ' +
+    'already approved an independent site.',
+  'Who is the POPIA responsible party and Information Officer for data collected here?',
+  'Does conceptwealth.co.za itself lead with "authorised by Sanlam"? If so, linking ' +
+    'there may reintroduce what was removed.',
+  'Photo: supply a file Harika owns and may use commercially.',
+  'Where should enquiries actually go? They currently reach server logs only.',
+] as const;
+
 export const disclaimers = {
   tool:
     'This tool gives an indicative estimate based only on the figures and assumptions ' +
@@ -132,30 +125,25 @@ export const disclaimers = {
   noProduct:
     'No product is recommended or implied here. Whether anything is suitable for you ' +
     'depends on your circumstances and needs a full advice process.',
+
+  /** The core positioning statement. Names no institution. */
+  noService:
+    'This website provides general financial information. No financial service is ' +
+    'offered here, no financial advice is given, and no financial product is sold, ' +
+    'recommended or promoted.',
+
+  independence:
+    'This is an independent personal website. It is not operated by, and does not ' +
+    'represent, any financial institution or product provider.',
 } as const;
 
 export const site = {
-  /**
-   * Named after Harika's podcast, so the site, the show and her voice are one brand.
-   *
-   * The domain stays climeo.dev (§2). A brand name that does not match its domain is a
-   * real cost: people cannot guess the URL from the name or the name from the URL.
-   * Accepted deliberately rather than by oversight.
-   */
   name: 'More Than Just Money',
-
-  /** Wordmark set on two lines. "More Than Just Money" at logo size is too wide. */
   nameLines: ['More Than', 'Just Money'] as const,
-
-  /**
-   * The podcast's full bilingual title. Her audience is Pretoria and the show is half
-   * Afrikaans, so this is the honest full name even though the site brands in English.
-   */
   nameFull: 'Meer as net geld / More than just money.',
-
   domain: 'https://climeo.dev',
   tagline: 'Know where you stand.',
   description:
-    'A short, plain-language check of where your finances stand, and a direct line to ' +
-    `${adviser.name}, ${adviser.role} at ${adviser.practice} in ${adviser.city}.`,
+    'Plain-language financial information: a short check of where things stand, ' +
+    'calculators that show their assumptions, and a podcast in Afrikaans and English.',
 } as const;

@@ -2,8 +2,7 @@
  * Reusable calculator framework (§14). One shape, one place for the maths.
  * Adding a calculator means adding a definition here — never a bespoke page.
  *
- * Deliberately NOT rebuilding Sanlam's retirement calculator (§48). These three
- * cover ground her existing Sanlam tools do not.
+ * These deliberately cover ground that tools available elsewhere do not (§48).
  */
 
 export type FieldKind = 'currency' | 'number' | 'select';

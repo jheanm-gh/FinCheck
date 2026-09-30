@@ -69,20 +69,12 @@ export default function PrivacyPage() {
         deleted, object to its use, and complain to the Information Regulator.
       </p>
 
-      <h2 className="mt-12">Sanlam&rsquo;s own policy</h2>
-      <p className="mt-4">
-        Where you deal with Sanlam directly, or follow a link from here into a Sanlam
-        system, Sanlam&rsquo;s{' '}
-        <a href={adviser.links.sanlamPrivacy} className="underline" rel="noopener">privacy policy</a>{' '}
-        applies to that interaction rather than this one.
-      </p>
-
       <div className="mt-14 rounded border-2 border-dashed border-[var(--color-clay)] p-6">
         <p className="text-sm font-semibold text-[var(--color-clay)]">Not yet legally complete</p>
         <p className="mt-2 text-sm text-[var(--color-clay)]">
           This page describes what the site actually does technically, which is accurate.
           It is not yet a valid privacy notice: the responsible party and Information
-          Officer must be confirmed by {adviser.practice}, and the whole notice reviewed by
+          Officer must be confirmed by the responsible party, and the whole notice reviewed by
           whoever handles their POPIA compliance, before this site accepts real submissions.
         </p>
       </div>

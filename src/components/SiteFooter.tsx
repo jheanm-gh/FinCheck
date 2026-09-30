@@ -1,6 +1,6 @@
 import Link from 'next/link';
-import { adviser, compliance, site } from '@/config/adviser';
-import { complianceText, outstandingComplianceItems } from '@/lib/compliance';
+import { adviser, disclaimers, site } from '@/config/adviser';
+import { outstandingComplianceItems } from '@/lib/compliance';
 import { SocialLinks } from './SocialLinks';
 
 export function SiteFooter() {
@@ -32,11 +32,10 @@ export function SiteFooter() {
           </ul>
         </nav>
 
-        <nav aria-label="Official profiles">
-          <h2 className="mb-3 text-sm font-semibold">Official profiles</h2>
+        <nav aria-label="Elsewhere">
+          <h2 className="mb-3 text-sm font-semibold">Elsewhere</h2>
           <ul className="space-y-2 text-sm text-[var(--color-quill)]">
-            <li><a href={adviser.links.sanlamProfile} className="hover:underline" rel="noopener">Harika on Sanlam</a></li>
-            <li><a href={adviser.links.conceptWealth} className="hover:underline" rel="noopener">Concept Wealth Hennopspark</a></li>
+            <li><a href={adviser.links.practice} className="hover:underline" target="_blank" rel="noopener noreferrer">{adviser.practice}</a></li>
           </ul>
           <SocialLinks className="mt-5" />
         </nav>
@@ -54,13 +53,8 @@ export function SiteFooter() {
         <p className="legal measure">
           {site.name} is the personal website of {adviser.name}, {adviser.role} at{' '}
           {adviser.practice}, and shares its name with her podcast. It is not operated by
-          Sanlam and is not Sanlam&rsquo;s corporate website.
         </p>
-        <p className="legal measure mt-3">
-          {complianceText(compliance.licensedEntity, 'LICENSED ENTITY')} · FSP{' '}
-          {complianceText(compliance.fspNumber, 'FSP NUMBER')}
-        </p>
-        <p className="legal measure mt-3">{compliance.sanlamEntityLine}</p>
+        <p className="legal measure mt-3">{disclaimers.noService}</p>
         <p className="legal mt-6">© {new Date().getFullYear()} {adviser.name}</p>
 
         {outstanding.length > 0 && (

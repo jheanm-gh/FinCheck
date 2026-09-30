@@ -3,8 +3,8 @@
  *
  * Design decisions worth knowing before editing:
  *
- * 1. QUALITATIVE, NOT NUMERIC. Sanlam's own Financial Check already asks for figures.
- *    Duplicating that would be worse and would collect household financial data we'd
+ * 1. QUALITATIVE, NOT NUMERIC. Figure-based checks already exist elsewhere.
+ *    Duplicating one would be worse and would collect household financial data we'd
  *    then have to secure and justify under POPIA. This asks 12 recognition questions
  *    instead — no rands, no ID numbers, no balances. Data minimisation by design.
  *

@@ -147,3 +147,23 @@ describe('lead consent', () => {
     expect(leadSchema.safeParse({ ...base, website: 'spam' }).success).toBe(false);
   });
 });
+
+describe('topic pages carry no lead qualification', () => {
+  it('exposes no audience targeting or pre-set lead intent', async () => {
+    const { TOPICS } = await import('../src/content/topics');
+    for (const t of TOPICS) {
+      expect(t).not.toHaveProperty('audience');
+      expect(t).not.toHaveProperty('leadIntent');
+    }
+  });
+
+  it('keeps all six topics with a calculator and a pillar', async () => {
+    const { TOPICS } = await import('../src/content/topics');
+    expect(TOPICS).toHaveLength(6);
+    for (const t of TOPICS) {
+      expect(t.calculatorId).toBeTruthy();
+      expect(t.pillar).toBeTruthy();
+      expect(t.answers.length).toBeGreaterThan(0);
+    }
+  });
+});

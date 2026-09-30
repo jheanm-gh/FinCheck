@@ -3,9 +3,11 @@
 import { useMemo, useState } from 'react';
 import Link from 'next/link';
 import {
-  QUESTIONS, PILLARS, BANDS, scoreCheck, type Answer, type CheckResult,
+  QUESTIONS, PILLARS, BANDS, scoreCheck,
+  type Answer, type CheckResult, type PillarId,
 } from '@/lib/check';
 import { adviser, disclaimers } from '@/config/adviser';
+import { PillarGuidance } from './PillarGuidance';
 import { LeadForm } from './LeadForm';
 
 const OPTIONS: { value: Answer; label: string }[] = [
@@ -44,6 +46,12 @@ function PillarBand({ label, ratio, band }: { label: string; ratio: number; band
 }
 
 function Results({ result, onRestart }: { result: CheckResult; onRestart: () => void }) {
+  // Weakest first, capped at two so the page stays readable.
+  const thin = [...result.pillars]
+    .filter((p) => p.ratio < 0.85)
+    .sort((a, b) => a.ratio - b.ratio)
+    .slice(0, 2);
+
   return (
     <div>
       <p className="text-sm text-[var(--color-quill)]">Your financial health snapshot</p>
@@ -69,7 +77,7 @@ function Results({ result, onRestart }: { result: CheckResult; onRestart: () => 
         <section className="mt-12">
           <h2>Worth looking at next</h2>
           <p className="measure mt-3 text-[var(--color-bark)]">
-            These are questions to bring to a conversation, not instructions.
+            These are questions to sit with, not instructions.
           </p>
           <ol className="measure mt-5 space-y-4">
             {result.reviewAreas.map((a, i) => (
@@ -84,7 +92,21 @@ function Results({ result, onRestart }: { result: CheckResult; onRestart: () => 
         </section>
       )}
 
-      <details className="surface mt-12 p-6">
+      {/* The substance of the page: what each thin area actually means. */}
+      {thin.length > 0 && (
+        <div className="mt-20">
+          <h2>Understanding these areas</h2>
+          <p className="measure mt-3 text-[var(--color-bark)]">
+            General background on the areas that came up thin. None of it is specific to
+            your situation.
+          </p>
+          <div className="mt-12 space-y-16">
+            {thin.map((p) => <PillarGuidance key={p.pillar} pillar={p.pillar} />)}
+          </div>
+        </div>
+      )}
+
+      <details className="surface mt-16 p-6">
         <summary className="cursor-pointer font-semibold">How this was worked out</summary>
         <p className="measure legal mt-4">
           Each of the {result.total} questions counts as covered, half covered, or not
@@ -97,12 +119,26 @@ function Results({ result, onRestart }: { result: CheckResult; onRestart: () => 
       </details>
 
       <section className="mt-16 border-t pt-12">
-        <h2>Want to talk through this?</h2>
-        <p className="measure mt-3">
-          {adviser.name} can look at your situation properly. Send your details and she
-          will get back to you.
+        <h2>Keep reading</h2>
+        <p className="measure mt-3 text-[var(--color-bark)]">
+          The calculators let you put your own figures against these areas, and the
+          podcast covers most of them in conversation.
         </p>
-        <div className="mt-8"><LeadForm checkBand={result.overall} source="check-result" /></div>
+        <div className="mt-7 flex flex-wrap gap-3">
+          <Link href="/calculators" className="btn btn-secondary">Calculators</Link>
+          <Link href="/learn" className="btn btn-secondary">Podcast</Link>
+          <Link href="/guides" className="btn btn-secondary">Checklists</Link>
+        </div>
+      </section>
+
+      {/* Contact is available, not the destination. */}
+      <section className="mt-16 border-t pt-12">
+        <h2 className="text-2xl">If you would like to talk it through</h2>
+        <p className="measure mt-3 text-[var(--color-bark)]">
+          {adviser.name} is contactable if you want a conversation about any of this.
+          There is no obligation, and nothing here commits you to anything.
+        </p>
+        <div className="mt-7"><LeadForm checkBand={result.overall} source="check-result" /></div>
       </section>
 
       <div className="mt-12 flex flex-wrap gap-4">

@@ -1,10 +1,11 @@
 import type { MetadataRoute } from 'next';
 import { site } from '@/config/adviser';
 import { CALCULATORS } from '@/lib/calculators';
+import { TOPICS } from '@/content/topics';
 
 export default function sitemap(): MetadataRoute.Sitemap {
   const now = new Date();
-  const routes = ['', '/check', '/calculators', '/learn', '/guides', '/about', '/contact', '/privacy', '/disclaimer'];
+  const routes = ['', '/check', '/topics', '/calculators', '/learn', '/guides', '/guides', '/about', '/contact', '/privacy', '/disclaimer'];
   return [
     ...routes.map((r) => ({
       url: `${site.domain}${r}`,
@@ -15,6 +16,11 @@ export default function sitemap(): MetadataRoute.Sitemap {
       url: `${site.domain}/calculators/${c.id}`,
       lastModified: now,
       priority: 0.7,
+    })),
+    ...TOPICS.map((t) => ({
+      url: `${site.domain}/topics/${t.slug}`,
+      lastModified: now,
+      priority: 0.8,
     })),
   ];
 }

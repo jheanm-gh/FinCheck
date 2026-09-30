@@ -24,6 +24,7 @@ export function SiteFooter() {
           <h2 className="mb-3 text-sm font-semibold">On this site</h2>
           <ul className="space-y-2 text-sm text-[var(--color-quill)]">
             <li><Link href="/check" className="hover:underline">Financial health check</Link></li>
+            <li><Link href="/topics" className="hover:underline">Topics</Link></li>
             <li><Link href="/calculators" className="hover:underline">Calculators</Link></li>
             <li><Link href="/learn" className="hover:underline">Learn</Link></li>
             <li><Link href="/about" className="hover:underline">About Harika</Link></li>
